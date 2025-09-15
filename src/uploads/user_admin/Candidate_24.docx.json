@@ -1,0 +1,81 @@
+{
+    "filename": "Candidate_24.docx",
+    "name": "Candidate24",
+    "email": "Candidate24@gmail.com",
+    "phone": "N/A",
+    "years_exp": 10.0,
+    "skills": [
+        "java",
+        "sql",
+        "spring",
+        "spring boot",
+        "aws",
+        "html",
+        "css",
+        "javascript",
+        "node",
+        "mysql",
+        "linux",
+        "git",
+        "jenkins",
+        "jira",
+        "rest"
+    ],
+    "skills_text": "java, sql, spring, spring boot, aws, html, css, javascript, node, mysql",
+    "text": " Name: Candidate24\n  Email: Candidate24@gmail.com\nM: (669) 261-3506\t\n\nPROFESSIONAL SUMMARY:\n\nHaving 10 years of IT experience in Software Development with proficiency in developing Enterprise-based and web-based applications using Java/J2EE, SQL and PLSQL technologies.\n\nExperienced as a JAVA/J2EE developer in the areas of Analysis, Design, Development, Implementation and Testing of web based and client server multi-tier applications.\nWorked on full cycle development from conceptualization to programming and deployment.\nExpertise in the areas of Spring Framework, Spring Boot, Spring Data, Spring Cloud Netflix, Micro services, Restful Web services, Hibernate, JPA, Struts, Servlets, JSP, JDBC, Unit Testing, AWS and Build Tools\nFamilar with front end technologies like HTML, CSS,Ajax, JavaScript, AngularJS and Node JS.\n  Good experience with huge transactions using Multithreading and batch wise operations. \nExceptional at team building and motivating either at a peer level or in a leadership role. Able to work with little or no supervision. Good communication and time management skills.\nTECHNICAL SKILLS:\nTechnologies: Java, J2EE, EJB, Java Beans, JSP/JSF, Servlets, JDBC, JNDI, Java Mail, Messaging (JMS),       Multithreading, Web Services,  SQL, PL/SQL and NoSQL.\n\nWeb Technologies: JavaScript, UML, HTML, XML, CSS, AngularJS , NodeJS\n\nApplication Servers: WebLogic 10.x/8.1, WebSphere 7.0/6.1, Tomcat 8.0, Jboss 4.x\n\nFrameworks/ORM tools: Spring 4.x/3.x/2.5, Struts 2.0/1.1, Hibernate 3.0\n\nDatabases: Oracle10g/9i/8i, Mongo DB, Postgre SQl, MYSQL\n\nOperating System: Windows , Unix, AWS, Linux and Solaris\n\nIDE: Eclipse 3.x, STS\n\nTesting Frameworks: JUnit, Testng, Mockito, PowerMockito\n\nBuild Tools:  Maven, ANT, Gradle\n\nOther Tools:  GIT, SVN,  TFS, Jenkins, JMeter, Jira, Sonar\n\n      \n\nCERTIFICATIONS:\nORACLE 9i   PL/SQL DEVELOPER CERTIFIED ASSOCIATE (OCA).                          \nSUN CERTIFIED JAVA PROGRAMMER (SCJP 5.0) for the JAVA 2 platform.            \nSUN CERTIFIED WEB COMPONENT DEVELOPER (SCWCD 5.0) for the JAVA 2 platform.\n\nEDUCATION:\n      Bachelor of Science in Computer Engineering, University of JNTU, Hyderabad, AP\n\nPROFESSIONAL EXPERIENCE:\n\nWalmart Labs, Sunnyvale, CA                                              \t                                June 2017 – till date\nInnominds Software INC     Sr. Java Developer \n\nResponsibilities:\t\nDeveloped the Generic Java concurrency Framework to execute multithreads.\nAnalysis and Design of various modules using SOA and J2EE stack.\nInvolved in design, develop and implementation of the application using Spring and J2EE framework.\nBuilt web-based applications using Spring MVC 3.0 Architecture.\nDeveloped stored procedures (developed in PL/SQL) on the back end.\nConsumed Web Services by implementing spring’s REST support.\nImplemented persistence layer using various features of Hibernate 3.0 framework like HQL queries, Criteria, projections etc. \nImplemented Java Persistence API (JPA) through Hibernate 3.0.\nAssisted Oracle DB development team in developing stored procedures and designing the database.\nUsed Maven for project builds and GIT as versioning system.\nInteracted with Business Analysts to come up with better implementation designs for the application.\nProvided production support for the application both onsite and remotely.\nS3 API implementation for accessing S3 bucket data files.\nManaging AWS instances using AWS System manager.\nEnvironment: Restful Web Services, JDK 1.8, Spring, Hibernate, Micro services, PowerMockito, OneOps, Gray Log, Apache CXF, Node JS, Mocha, Oracle, Maven, GIT, Jenkins, Jira\n\n\nAzuba, Hyderabad                                   \t                                                        June 2015 – May 2017\nInnominds Software INC   Sr. Java Developer\n\nResponsibilities:\nInvolved in the Project Setup process of routing and filtering requests to a micro service application using the Netflix Zuul edge service library.\nDeveloped Zuul API gateway for Authentication using Reddis Cache.\nImplemented this project based on Service Oriented Architecture (SOA) using Spring Boot, Spring Cloud Netflix, Spring Data and Hibernate.\nUsed Kafka as a messaging broker to inter communicates between the Micro Services.\nExperienced developing and delivering mission-critical data platforms for real-time analysis.\nExperienced developing high performance transaction or reporting systems with multi-tier architectures.\nDesign and Development of software components like Interface, Action Handlers.\nDeveloped trading applications for equities and equities derivatives.\nUsed JavaScript and Struts validation framework for front end as well as server-side validations.\nDeveloped the client classes for the web services implementing SOA.\nUsed Spring Framework for integrating Hibernate and Struts and for dependency injection.\nExtensively used Hibernate ORM tool in data access layer to map the object view of data into database and to provide access and update information in the database.\nDeveloped Data Access Object (DAO) persistence layer using Hibernate.\nCreated documentation for benchmarking the Cassandra cluster for the designed tables. \nWorked on Linux shell scripts for business process and loading data from Oracle to Cassandra.\nDeployment automation, AWS EC2 instance mirroring, WebLogic domain creations and several proprietary middleware installations.\nUsed GIT for version control across common source code used by developers.\nEnvironment: Angular JS, Restful Web Services, JDK 1.7, Amazon ec2,AWS S3, Unix, Log 4j, Apache Kafka, Maven, Spring MVC, Spring Boot, Spring Data, Spring Cloud Netflix, Zuul, Microservices, Hibernate, Mongo dB, MySQL\n\n\nAcesse Marketing, Newyork\t\t\t\t\t                     Feb 2014 – Jun 2015 \nInnominds Software INC    Sr Java/J2EE Developer \n\nResponsibilities:\nInvolved in Full Cycle of Software Development from Analysis through Design, Development, Integration and testing phases.\nImplemented the application using the concrete principles laid down by several design patterns such as Composite View, Session Facade, Business Delegate, Bean Factory, Singleton, Data Access Object, and Service Locator.\nInvolved in Developing of Application based on J2EE using Spring, Hibernate and spring framework.\nDesigned and implemented transaction management using Spring AOP.\nImplemented different types of spring controllers as per application requirements, Spring validators, persistence layer, DAO and service layer components using Spring/Hibernate API and Spring/Hibernate annotations. Extensively used Hibernate QL.\nExtensively used Spring IOC, configured Application Context files and performed database object mapping using Hibernate annotations.\nUsed JPA for mapping business objects to the MySQL database\nAutomate build process by using Maven and used GIT version control tool.\nEnvironment: Angular JS, HTML, Java Script, Servlets, Spring MVC, Spring Micro services, Hibernate, ORACLE 11g, Tomcat Application Server, Restful Web Services, JDK 1.7, UNIX, AWS, S3, Log 4j, and Maven.\n\n\nNorthern Trust, Texas\t\t\t\t\t                     Jun 2013 – Feb 2014 \nCognizant    Sr Java/J2EE Developer \n\nResponsibilities:\nImplemented the application using the concrete principles laid down by several design patterns such as Composite View, Session Facade, Business Delegate, Bean Factory, Singleton, Data Access Object, and Service Locator.\nSee real-time banking balances and transaction activity\nReceive and pay bills quickly and efficiently\nMove money effortlessly between Northern Trust and non-Northern Trust accounts\nGenerate enhanced reports.\nGet moving with Private Passport Mobile\nEnvironment: JSP Struts 1.2, Servlets, Spring DAO, Hibernate, ORACLE 11g, WebLogic Application Server, JDK 1.5, UNIX, AIX, Solaris, Log 4j, and Ant.\n\nAmerican Express, USA\t\t\t\t\t                Oct 2012 – May 2013 \nCognizant   Sr Java/J2EE Developer \n\nResponsibilities:\nInvolved in Full Cycle of Software Development from Analysis through Design, Development, Integration and testing phases.\nImplemented the application using the concrete principles laid down by several design patterns such as Composite View, Session Facade, Business Delegate, Bean Factory, Singleton, Data Access Object, and Service Locator.\nInvolved in Development of enhancements for new /enhancement modules.\nEnvironment: JSP, Struts 1.2, Servlets, ORACLE 11g, WebSphere Application Server, JDK 1.5, Service Now\n\n\nCITI Bank, USA\t\t\t\t\t                            Apr 2011 – Oct 2012 \nVirtusa Polaris   Sr Java/J2EE Developer \n\nResponsibilities:\nInvolved in Full Cycle of Software Development from Analysis through Design, Development, Integration and testing phases.\nUsed Agile Methodology and actively participated in Scrum meetings to produce quality deliverables within time.\nInvolved in Developments of Designing of Dynamic Forms using XML and posting to the server\nInvolved in fixing the bugs in the existing database objects and generates the reports.\nEnvironment: JSP, Struts 1.2, Servlets, Hibernates, ORACLE 11g, WebSphere Application Server, JDK 1.5, UNIX, Solaris, Log 4j, and Ant.\n\nOMICS, Singapore\t\t\t\t\t                            Nov 2006 – Mar 2011 \nUniquee Solutions   Sr Java/J2EE Developer \n\nResponsibilities:\nInvolved in Full Cycle of Software Development from Analysis through Design, Development, Integration and testing phases.\nCode reviewing.\nDesigned the database objects like tables, views, indexes, sequences, cursors, procedures, Functions, packages, triggers files.etc.\nPrepare the build scripts and placed into release server\nEnvironment: JSP, Servlets, Oracle 10g, xml, xpath, Web harvest, SQL, PLSQL, SOLARAIS, XSLT, STRUTS 1.2, Eclipse, Jdk 1.5\n\n\n\n",
+    "entities": {
+        "PERSON": [
+            "Candidate24",
+            "Cloud Netflix",
+            "Hibernate",
+            "Multithreading",
+            "Java",
+            "Java Beans",
+            "Java Mail",
+            "Frameworks",
+            "Mongo DB",
+            "Testng"
+        ],
+        "ORG": [
+            "Software Development",
+            "Java/J2EE",
+            "SQL",
+            "JAVA",
+            "Analysis, Design, Development, Implementation and Testing",
+            "Micro",
+            "Restful Web",
+            "Struts, Servlets",
+            "JSP",
+            "JDBC"
+        ],
+        "GPE": [
+            "Spring Framework",
+            "Servlets",
+            "JDBC",
+            "NoSQL",
+            "Linux",
+            "Solaris",
+            "Mockito",
+            "PowerMockito",
+            "Maven",
+            "TFS"
+        ],
+        "LOC": [
+            "S3 API"
+        ],
+        "TITLE": [
+            "A Java/J2Ee Developer In The",
+            "In A Leadership Role. Able",
+            "9I Pl/Sql Developer Certified Associate",
+            "Web Component Developer (Scwcd 5.0)",
+            "In Computer Engineering, University Of"
+        ]
+    },
+    "emails": [
+        "Candidate24@gmail.com"
+    ],
+    "phones": [],
+    "file_path": "uploads\\user_admin\\Candidate_24.docx",
+    "feedback_history": [],
+    "latest_feedback": null
+}

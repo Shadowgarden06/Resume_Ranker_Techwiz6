@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Ranker</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="AI-powered resume ranking and candidate screening tool">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI Ranker">
+    <meta name="msapplication-TileColor" content="#0d6efd">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512x512.png') }}">
+    
+    <!-- Stylesheets -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/index.css') }}" rel="stylesheet">
+    <style>
+        /* Mobile-first responsive design */
+        .main-container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 10px; 
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .main-container { 
+                padding: 5px; 
+            }
+            
+            .upload-section, .jd-section, .cv-section, .results-section { 
+                padding: 15px; 
+                margin-bottom: 20px; 
+            }
+            
+            .cv-card { 
+                padding: 10px; 
+                margin-bottom: 10px; 
+            }
+            
+            .btn-analyze { 
+                padding: 10px 20px; 
+                font-size: 14px; 
+                width: 100%; 
+                margin-bottom: 10px; 
+            }
+            
+            .upload-area { 
+                padding: 20px 10px; 
+            }
+            
+            .file-info { 
+                padding: 8px; 
+                font-size: 14px; 
+            }
+            
+            .skill-tag { 
+                font-size: 11px; 
+                padding: 1px 6px; 
+            }
+            
+            .score-badge { 
+                font-size: 12px; 
+                padding: 3px 8px; 
+            }
+            
+            /* Mobile navigation */
+            .navbar-brand { 
+                font-size: 18px; 
+            }
+            
+            .navbar-nav .nav-link { 
+                padding: 8px 12px; 
+                font-size: 14px; 
+            }
+            
+            /* Mobile card layout */
+            .cv-card .row { 
+                margin: 0; 
+            }
+            
+            .cv-card .col-md-6, .cv-card .col-lg-4 { 
+                padding: 5px; 
+            }
+            
+            /* Mobile buttons */
+            .btn-group .btn { 
+                font-size: 12px; 
+                padding: 6px 12px; 
+            }
+            
+            /* Mobile forms */
+            .form-control, .form-select { 
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            /* Mobile alerts */
+            .alert { 
+                font-size: 14px; 
+                padding: 10px; 
+            }
+            
+            /* Mobile modals */
+            .modal-dialog { 
+                margin: 10px; 
+            }
+            
+            /* Touch-friendly elements */
+            .btn, .form-control, .form-select { 
+                min-height: 44px; /* iOS touch target size */
+            }
+        }
+        
+        /* Tablet optimizations */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .main-container { 
+                padding: 15px; 
+            }
+            
+            .upload-section, .jd-section, .cv-section, .results-section { 
+                padding: 18px; 
+            }
+        }
+        
+        /* Desktop styles */
+        .upload-section { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .jd-section { background: #e3f2fd; border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .cv-section { background: #f3e5f5; border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .results-section { background: #e8f5e8; border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .cv-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px; transition: all 0.3s ease; }
+        .cv-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .cv-card.selected { background-color: #fff3cd; border-color: #ffc107; box-shadow: 0 0 10px rgba(255, 193, 7, 0.3); }
+        .cv-card.selected .card-header { background-color: #fff3cd; }
+        .selected-indicator { position: absolute; top: 10px; right: 10px; background: #ffc107; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .btn-analyze { background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 12px 30px; border-radius: 25px; font-weight: bold; transition: all 0.3s ease; }
+        .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .progress-container { margin: 20px 0; }
+        .file-info { background: white; border-radius: 5px; padding: 10px; margin: 10px 0; }
+        .skill-tag { display: inline-block; background: #e9ecef; padding: 2px 8px; margin: 2px; border-radius: 12px; font-size: 12px; }
+        .score-badge { font-size: 14px; padding: 5px 10px; }
+        .upload-area { border: 2px dashed #dee2e6; border-radius: 10px; padding: 40px; text-align: center; transition: all 0.3s ease; }
+        .upload-area:hover { border-color: #007bff; background-color: #f8f9fa; }
+        .upload-area.dragover { border-color: #28a745; background-color: #d4edda; }
+        
+        /* Mobile-specific improvements */
+        .mobile-optimized {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* Swipe gestures for mobile */
+        .swipeable {
+            touch-action: pan-y;
+        }
+        
+        /* Mobile loading states */
+        .mobile-loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        
+        /* Mobile-friendly dropdowns */
+        @media (max-width: 768px) {
+            .dropdown-menu {
+                position: static !important;
+                transform: none !important;
+                width: 100%;
+                border: none;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index_bp.index') }}">
+                <i class="fas fa-chart-line me-2"></i><span class="d-none d-sm-inline">AI Resume Ranker</span><span class="d-inline d-sm-none">AI Ranker</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <span class="navbar-text me-3">
+                        <i class="fas fa-user me-1"></i>{{ session.user_id or 'Guest' }}
+                    </span>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('index_bp.index') }}">
+                            <i class="fas fa-home me-1"></i><span class="d-none d-md-inline">Home</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('uploads_bp.upload_list') }}">
+                            <i class="fas fa-upload me-1"></i><span class="d-none d-md-inline">Uploaded CVs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('search_bp.search_candidates') }}">
+                            <i class="fas fa-search me-1"></i><span class="d-none d-md-inline">Search</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('qa_bp.qa_home') }}">
+                            <i class="fas fa-question-circle me-1"></i><span class="d-none d-md-inline">Document QA</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login_bp.logout') }}">
+                            <i class="fas fa-sign-out-alt me-1"></i><span class="d-none d-md-inline">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4"><i class="fas fa-chart-line text-primary me-2"></i>AI Resume Ranker</h1>
+                <p class="text-muted mb-4">Advanced Resume Analysis with NER & Semantic Matching</p>
+                
+                <!-- TF-IDF Explanation Section -->
+                <div class="alert alert-info" role="alert">
+                    <h6><i class="fas fa-info-circle me-2"></i>How Our AI Ranking Works:</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-search me-1"></i>TF-IDF Score:</strong>
+                            <small class="d-block text-muted">Measures keyword frequency and importance. Higher score = more relevant keywords match between resume and job description.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-brain me-1"></i>Semantic Score:</strong>
+                            <small class="d-block text-muted">Uses AI to understand meaning and context. Captures similar concepts even with different words.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-tools me-1"></i>Skills Score:</strong>
+                            <small class="d-block text-muted">Matches technical skills and competencies. Identifies specific abilities mentioned in both resume and job requirements.</small>
+                        </div>
+                    </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#tfidfDetails" aria-expanded="false">
+                        <i class="fas fa-question-circle me-1"></i>Learn More About TF-IDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary ms-2" type="button" onclick="showTFIDFExplanation()">
+                        <i class="fas fa-graduation-cap me-1"></i>Detailed TF-IDF Guide
+                    </button>
+                </div>
+                    <div class="collapse mt-3" id="tfidfDetails">
+                        <div class="card card-body bg-light">
+                            <h6><i class="fas fa-lightbulb me-2"></i>What is TF-IDF?</h6>
+                            <p class="mb-2"><strong>TF (Term Frequency):</strong> How often a word appears in the resume compared to the job description.</p>
+                            <p class="mb-2"><strong>IDF (Inverse Document Frequency):</strong> How rare or important a word is across all documents.</p>
+                            <p class="mb-0"><strong>Example:</strong> If "Python" appears frequently in both your resume and the job description, and "Python" is a specialized skill (not common in all resumes), you'll get a high TF-IDF score for that keyword.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="jd-section">
+            <h3><i class="fas fa-briefcase text-primary me-2"></i>Job Description</h3>
+            
+            <ul class="nav nav-tabs mb-3" id="jdTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="text-tab" data-bs-toggle="tab" data-bs-target="#text-pane" type="button" role="tab">
+                        <i class="fas fa-keyboard me-1"></i>Enter Text
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-pane" type="button" role="tab">
+                        <i class="fas fa-file-upload me-1"></i>Upload File
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="jdTabContent">
+                <div class="tab-pane fade show active" id="text-pane" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="job_description" class="form-label">Enter Job Description</label>
+                        <textarea class="form-control" id="job_description" rows="8" placeholder="Enter job description, required skills, experience..."></textarea>
+                        <div class="form-text">Enter Job Description content directly</div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="file-pane" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="jd_file" class="form-label">Upload Job Description File</label>
+                        <input type="file" class="form-control" id="jd_file" accept=".pdf,.docx,.txt" onchange="handleJDFileUpload()">
+                        <div class="form-text">Supports PDF, DOCX, TXT files</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button class="btn btn-primary" id="upload-jd-btn" onclick="uploadJDFile()" disabled>
+                            <i class="fas fa-upload me-2"></i>Upload JD
+                        </button>
+                        <div class="form-text">Select JD file before uploading</div>
+                    </div>
+                    
+                    <div id="jd-file-info" class="file-info" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>File:</strong> <span id="jd-file-name"></span><br>
+                                <strong>Size:</strong> <span id="jd-file-size"></span>
+                            </div>
+                            <span class="badge bg-success">Selected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="jd-info-display" class="mt-3" style="display: none;"></div>
+            
+            <div id="jd-upload-message" class="mt-3"></div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="upload-card">
+            <div class="upload-card-header">
+                <h5><i class="fas fa-file-alt me-2"></i>Resume Files</h5>
+                <span class="badge bg-light text-dark">Step 2</span>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="cv_files" class="form-label">
+                            <i class="fas fa-upload me-1"></i>Upload CV Files:
+                        </label>
+                        <input type="file" class="form-control" name="resume_files" id="cv_files" accept=".pdf,.docx" multiple required onchange="handleCVFileUpload()">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Select multiple CV files at once (PDF, DOCX)
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-cogs me-1"></i>Actions:
+                        </label>
+                        <div class="upload-actions">
+                            <button type="button" class="btn btn-primary" onclick="uploadCVFiles()" id="upload-cv-btn" disabled>
+                                <i class="fas fa-upload me-2"></i>Upload CVs
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearCVs()">
+                                <i class="fas fa-trash me-2"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="cv-file-info" class="file-info" style="display: none;">
+                <i class="fas fa-info-circle me-1"></i>
+                <strong>Files selected:</strong> <span id="cv-file-count"></span> files - <span id="cv-file-size"></span>
+            </div>
+            
+            <div id="uploaded-files-list" class="mt-3" style="display: none;">
+                <h6><i class="fas fa-list me-2"></i>Uploaded and parsed files:</h6>
+                <div id="files-list-content"></div>
+            </div>
+            
+            <div id="cv-upload-message" class="mt-2"></div>
+        </div>
+
+        <div class="upload-card">
+            <div class="upload-card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Analysis</h5>
+                <span class="badge bg-light text-dark">Step 3</span>
+            </div>
+            
+            <div class="text-center">
+                <button type="button" class="btn btn-warning btn-lg" onclick="startAnalysis()" id="analyze-btn" disabled>
+                    <i class="fas fa-play me-2"></i>Start Analysis
+                </button>
+                <div class="form-text mt-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    A Job Description and at least 1 CV are needed to start the analysis
+                </div>
+            </div>
+        </div>
+
+        <form id="analysis-form" action="{{ url_for('index_bp.index') }}" method="post" enctype="multipart/form-data" onsubmit="return validateBeforeAnalyze()" style="display: none;">
+            <input type="hidden" name="job_description" id="hidden_job_description">
+            <input type="hidden" name="resume_files" id="hidden_resume_files">
+        </form>
+
+        {% if results %}
+        <div class="results-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0"><i class="fas fa-trophy text-warning me-2"></i>Ranked Resumes</h2>
+                    <small class="text-muted">Candidates ranked by AI analysis using TF-IDF, Semantic, and Skills matching</small>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline-info btn-sm" onclick="viewFeedbackStats()">
+                        <i class="fas fa-chart-bar me-1"></i>Statistics
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="improveModel()">
+                        <i class="fas fa-brain me-1"></i>Improve AI
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Scoring Explanation -->
+            <div class="alert alert-light border mb-4">
+                <h6><i class="fas fa-calculator me-2"></i>Understanding the Scores:</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="badge bg-primary mb-1">TF-IDF</div>
+                            <small class="d-block text-muted">Keyword matching score (0-1)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="badge bg-success mb-1">Semantic</div>
+                            <small class="d-block text-muted">Meaning similarity score (0-1)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="badge bg-warning mb-1">Skills</div>
+                            <small class="d-block text-muted">Technical skills match (0-1)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="badge bg-danger mb-1">Combined</div>
+                            <small class="d-block text-muted">Overall ranking score</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#scoringDetails" aria-expanded="false">
+                        <i class="fas fa-info-circle me-1"></i>How are these scores calculated?
+                    </button>
+                </div>
+                <div class="collapse mt-3" id="scoringDetails">
+                    <div class="card card-body bg-white">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-search text-primary me-2"></i>TF-IDF Score</h6>
+                                <p class="small mb-2"><strong>Term Frequency (TF):</strong> How often keywords from the job description appear in the resume.</p>
+                                <p class="small mb-2"><strong>Inverse Document Frequency (IDF):</strong> How rare/important each keyword is across all resumes.</p>
+                                <p class="small mb-0"><strong>Formula:</strong> TF × IDF = Keyword importance score</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-brain text-success me-2"></i>Semantic Score</h6>
+                                <p class="small mb-2">Uses advanced AI to understand the <strong>meaning</strong> of text, not just exact word matches.</p>
+                                <p class="small mb-2">Example: "Machine Learning" and "ML" would have high semantic similarity even though they're different words.</p>
+                                <p class="small mb-0">Captures context and related concepts automatically.</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-tools text-warning me-2"></i>Skills Score</h6>
+                                <p class="small mb-2">Matches specific technical skills, programming languages, tools, and competencies.</p>
+                                <p class="small mb-2">Uses Named Entity Recognition (NER) to identify skills mentioned in both resume and job description.</p>
+                                <p class="small mb-0">Higher score = more required skills found in the resume.</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="text-center">
+                            <h6><i class="fas fa-calculator text-danger me-2"></i>Combined Score</h6>
+                            <p class="small mb-0">The final ranking score is calculated by combining all three scores with optimized weights that improve over time based on your feedback.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                {% for result in results %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="cv-card" data-rank="{{ result.rank }}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            {% set display_name = result.name or 'Unknown' %}
+                            {% set truncated_name = display_name[:100] + '...' if display_name|length > 100 else display_name %}
+                            <h6 class="mb-0" title="{{ display_name }}">{{ truncated_name }}</h6>
+                            <span class="badge bg-primary score-badge">{{ "%.1f"|format(result.combined_score) }}</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-envelope me-1"></i>{{ result.email or 'N/A' }}<br>
+                                    <i class="fas fa-phone me-1"></i>{{ result.phone or 'N/A' }}<br>
+                                    <i class="fas fa-briefcase me-1"></i>{{ result.years_exp or 0 }} years exp
+                                </small>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Skills:</strong><br>
+                                {% for skill in result.skills_text.split(',')[:5] %}
+                                    <span class="skill-tag">{{ skill.strip() }}</span>
+                                {% endfor %}
+                                {% if result.skills_text.split(',')|length > 5 %}
+                                    <span class="skill-tag">+{{ result.skills_text.split(',')|length - 5 }} more</span>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <small class="text-muted">TF-IDF</small><br>
+                                        <span class="badge bg-info" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="Keyword matching score: {{ '%.2f'|format(result.tfidf_score) }} - Measures how well resume keywords match job description keywords">
+                                            {{ "%.2f"|format(result.tfidf_score) }}
+                                        </span>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Semantic</small><br>
+                                        <span class="badge bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="Meaning similarity score: {{ '%.2f'|format(result.semantic_score) }} - AI understands context and meaning, not just exact word matches">
+                                            {{ "%.2f"|format(result.semantic_score) }}
+                                        </span>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Skills</small><br>
+                                        <span class="badge bg-success" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="Technical skills match: {{ '%.2f'|format(result.skill_score) }} - Matches specific skills, tools, and competencies mentioned in both resume and job description">
+                                            {{ "%.2f"|format(result.skill_score) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('uploads_bp.cv_text', filename=result.filename) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                <a href="{{ url_for('uploads_bp.cv_file', filename=result.filename) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </a>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-{{ 'success' if result.get('selected') else 'secondary' }}" id="status-{{ result.rank }}">
+                                    {% if result.get('selected') %}Selected{% else %}Not Selected{% endif %}
+                                </span>
+                                {% if not result.get('selected') %}
+                                    <button class="btn btn-sm btn-outline-primary" id="select-btn-{{ result.rank }}" onclick="selectCandidate({{ result.rank }})">
+                                        <i class="fas fa-check me-1"></i>Select
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-sm btn-outline-danger" id="unselect-btn-{{ result.rank }}" onclick="unselectCandidate({{ result.rank }})">
+                                        <i class="fas fa-times me-1"></i>UnSelect
+                                    </button>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mt-3 p-3 bg-light rounded">
+                                <h6 class="mb-2"><i class="fas fa-comment-dots me-1"></i>Feedback for AI</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <select class="form-select form-select-sm mb-2" id="decision-{{ result.rank }}">
+                                            <option value="">Select decision...</option>
+                                            <option value="hired">✅ Hired</option>
+                                            <option value="interviewed">📞 Interviewed</option>
+                                            <option value="shortlisted">📋 Shortlisted</option>
+                                            <option value="rejected">❌ Rejected</option>
+                                            <option value="not_suitable">⚠️ Not Suitable</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <select class="form-select form-select-sm mb-2" id="rating-{{ result.rank }}">
+                                            <option value="">Rating (1-5)...</option>
+                                            <option value="5">5 - Excellent</option>
+                                            <option value="4">4 - Good</option>
+                                            <option value="3">3 - Average</option>
+                                            <option value="2">2 - Poor</option>
+                                            <option value="1">1 - Very Poor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <textarea class="form-control form-control-sm mb-2" id="notes-{{ result.rank }}" 
+                                          placeholder="Additional notes (optional)..." rows="2"></textarea>
+                                <button class="btn btn-sm btn-success" onclick="submitFeedback('{{ result.filename }}', {{ result.rank }})">
+                                    <i class="fas fa-paper-plane me-1"></i>Submit Feedback
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="text-center mt-4">
+                <div class="btn-group" role="group" aria-label="Download options">
+                    <a href="{{ url_for('index_bp.download_csv') }}" download="ranked_resumes.csv" class="btn btn-success">
+                        <i class="fas fa-file-csv me-2"></i>Download CSV
+                    </a>
+                    <a href="{{ url_for('index_bp.download_excel') }}" download="ranked_resumes.xlsx" class="btn btn-primary">
+                        <i class="fas fa-file-excel me-2"></i>Download Excel
+                    </a>
+                    <a href="{{ url_for('index_bp.download_pdf') }}" download="ranked_resumes.pdf" class="btn btn-danger">
+                        <i class="fas fa-file-pdf me-2"></i>Download PDF
+                    </a>
+                </div>
+                <div class="form-text mt-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Download analysis results in various formats
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Debug: Check if static files are loading
+        console.log('Loading static files...');
+        
+        // Handle JD File Upload
+        function handleJDFileUpload() {
+            console.log('handleJDFileUpload called');
+            const fileInput = document.getElementById('jd_file');
+            const uploadBtn = document.getElementById('upload-jd-btn');
+            
+            if (fileInput.files.length > 0) {
+                uploadBtn.disabled = false;
+                console.log('JD file selected:', fileInput.files[0].name);
+            } else {
+                uploadBtn.disabled = true;
+            }
+        }
+        
+        // Upload JD File
+        async function uploadJDFile() {
+            console.log('uploadJDFile called');
+            const fileInput = document.getElementById('jd_file');
+            const uploadBtn = document.getElementById('upload-jd-btn');
+            const textArea = document.getElementById('job_description');
+            
+            if (!fileInput.files.length) {
+                alert('Please select a JD file.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('jd_file', fileInput.files[0]);
+            
+            try {
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+                uploadBtn.disabled = true;
+                
+                const response = await fetch('/upload_jd', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                console.log('JD upload response:', data);
+                
+                if (data.success) {
+                    uploadBtn.innerHTML = '<i class="fas fa-check me-2"></i>Uploaded';
+                    uploadBtn.className = 'btn btn-success';
+                    
+                    // ✅ Display content in textarea
+                    if (data.content && textArea) {
+                        textArea.value = data.content;
+                        console.log('JD content loaded into textarea');
+                    }
+                    
+                    alert(`JD uploaded successfully! Content loaded.`);
+                    
+                    // Update Analysis button
+                    setTimeout(() => {
+                        updateAnalyzeButton();
+                    }, 500);
+                } else {
+                    uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload JD';
+                    uploadBtn.disabled = false;
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error uploading JD:', error);
+                uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload JD';
+                uploadBtn.disabled = false;
+                alert('Error occurred while uploading JD: ' + error.message);
+            }
+        }
+        
+        // Save JD Text
+        async function saveJDText() {
+            console.log('saveJDText called');
+            const jdText = document.getElementById('job_description').value.trim();
+            
+            if (!jdText) {
+                alert('Please enter Job Description!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/save_jd_text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: jdText
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('JD text save response:', data);
+                
+                if (data.success) {
+                    alert('JD text saved successfully!');
+                    
+                    // Update Analysis button
+                    setTimeout(() => {
+                        updateAnalyzeButton();
+                    }, 500);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error saving JD text:', error);
+                alert('Error occurred while saving JD text: ' + error.message);
+            }
+        }
+        
+        // Handle CV File Upload - Enable/Disable upload button
+        function handleCVFileUpload() {
+            console.log('handleCVFileUpload called');
+            const fileInput = document.getElementById('cv_files');
+            const uploadBtn = document.getElementById('upload-cv-btn');
+            
+            if (fileInput && uploadBtn) {
+                if (fileInput.files.length > 0) {
+                    uploadBtn.disabled = false;
+                    console.log('CV files selected:', fileInput.files.length);
+                } else {
+                    uploadBtn.disabled = true;
+                    console.log('No CV files selected');
+                }
+            } else {
+                console.error('File input or upload button not found');
+            }
+        }
+        
+        // Clear CV files
+        function clearCVs() {
+            console.log('clearCVs called');
+            const fileInput = document.getElementById('cv_files');
+            const uploadBtn = document.getElementById('upload-cv-btn');
+            
+            // Clear file input
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            
+            // Reset upload button
+            if (uploadBtn) {
+                uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload CVs';
+                uploadBtn.className = 'btn btn-primary';
+                uploadBtn.disabled = true;
+            }
+            
+            // Hide file info
+            const fileInfo = document.getElementById('cv-file-info');
+            if (fileInfo) {
+                fileInfo.style.display = 'none';
+            }
+            
+            console.log('CV files cleared');
+        }
+        
+        // Clear JD
+        function clearJD() {
+            console.log('clearJD called');
+            const fileInput = document.getElementById('jd_file');
+            const uploadBtn = document.getElementById('upload-jd-btn');
+            const textArea = document.getElementById('job_description');
+            
+            // Clear file input
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            
+            // Clear text area
+            if (textArea) {
+                textArea.value = '';
+            }
+            
+            // Reset upload button
+            if (uploadBtn) {
+                uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload JD';
+                uploadBtn.className = 'btn btn-primary';
+                uploadBtn.disabled = true;
+            }
+            
+            console.log('JD cleared');
+        }
+        
+        // Upload CV Files - Fixed version to call both steps
+        async function uploadCVFiles() {
+            console.log('uploadCVFiles called');
+            const fileInput = document.getElementById('cv_files');
+            const uploadBtn = document.getElementById('upload-cv-btn');
+            
+            if (!fileInput.files.length) {
+                alert('Please select at least one CV file.');
+                return;
+            }
+            
+            const formData = new FormData();
+            for (const file of fileInput.files) {
+                formData.append('resume_files', file);
+            }
+            
+            try {
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+                uploadBtn.disabled = true;
+                
+                // Step 1: Upload files
+                console.log('Step 1: Uploading files...');
+                const response = await fetch('/upload_cv_files', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                console.log('Upload response:', data);
+                
+                if (data.success) {
+                    console.log('Upload successful, now parsing...');
+                    
+                    // Step 2: Parse files
+                    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Parsing...';
+                    
+                    const filenames = data.files.map(f => f.filename);
+                    console.log('Parsing files:', filenames);
+                    
+                    const parseResponse = await fetch('/parse_cv_files', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            filenames: filenames
+                        })
+                    });
+                    
+                    const parseData = await parseResponse.json();
+                    console.log('Parse response:', parseData);
+                    
+                    if (parseData.success) {
+                        uploadBtn.innerHTML = '<i class="fas fa-check me-2"></i>Parsed';
+                        uploadBtn.className = 'btn btn-success';
+                        alert(`CV upload and parse successful! (${parseData.parsed_count}/${parseData.total_count} files)`);
+                        
+                        // Update Analysis button
+                        setTimeout(() => {
+                            updateAnalyzeButton();
+                        }, 500);
+                    } else {
+                        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload CVs';
+                        uploadBtn.disabled = false;
+                        alert('Upload successful but parsing failed: ' + parseData.message);
+                    }
+                } else {
+                    uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload CVs';
+                    uploadBtn.disabled = false;
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error uploading CV:', error);
+                uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload CVs';
+                uploadBtn.disabled = false;
+                alert('Error occurred while uploading CV: ' + error.message);
+            }
+        }
+        
+        // Update Analyze Button - Only check CVs in session, JD from textarea
+        async function updateAnalyzeButton() {
+            console.log('=== updateAnalyzeButton called ===');
+            
+            try {
+                const analyzeBtn = document.getElementById('analyze-btn');
+                if (!analyzeBtn) {
+                    console.error('Analyze button not found!');
+                    return;
+                }
+                console.log('Analyze button found:', analyzeBtn);
+
+                // Check JD from textarea (no session needed)
+                let hasJD = false;
+                try {
+                    const jdTextarea = document.getElementById('job_description');
+                    if (jdTextarea) {
+                        hasJD = jdTextarea.value.trim().length > 0;
+                        console.log('JD from textarea:', hasJD, 'length:', jdTextarea.value.trim().length);
+                    }
+                } catch (error) {
+                    console.log('JD textarea check error:', error);
+                }
+
+                // Check CV trong session
+                let hasCVs = false;
+                let cvCount = 0;
+                try {
+                    console.log('Checking CVs in session...');
+                    const cvResponse = await fetch('/get_uploaded_cvs_count');
+                    const cvData = await cvResponse.json();
+                    console.log('CV response:', cvData);
+                    
+                    hasCVs = cvData.success && cvData.count > 0;
+                    cvCount = cvData.count || 0;
+                    console.log('CV check result:', hasCVs, 'count:', cvCount);
+                } catch (error) {
+                    console.log('CV check error:', error);
+                }
+
+                // Update button state
+                if (hasJD && hasCVs) {
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.classList.remove('btn-secondary');
+                    analyzeBtn.classList.add('btn-warning');
+                    console.log('✅ Analyze button ENABLED - Ready to analyze!');
+                } else {
+                    analyzeBtn.disabled = true;
+                    analyzeBtn.classList.remove('btn-warning');
+                    analyzeBtn.classList.add('btn-secondary');
+                    console.log('❌ Analyze button DISABLED');
+                }
+
+                    // Update message
+                updateAnalysisMessage(hasJD, hasCVs, cvCount);
+                
+            } catch (error) {
+                console.error('Error in updateAnalyzeButton:', error);
+            }
+        }
+        
+        // Update Analysis Message - Update notification
+        function updateAnalysisMessage(hasJD, hasCVs, cvCount) {
+            try {
+                const messageDiv = document.querySelector('#analyze-btn').parentElement.querySelector('.form-text');
+                if (!messageDiv) {
+                    console.log('Message div not found');
+                    return;
+                }
+
+                console.log('Updating message:', { hasJD, hasCVs, cvCount });
+
+                if (hasJD && hasCVs) {
+                    messageDiv.innerHTML = `<i class="fas fa-check-circle me-1 text-success"></i>Ready to analyze! (${cvCount} CVs)`;
+                    messageDiv.className = 'form-text mt-2 text-success';
+                } else {
+                    let message = '<i class="fas fa-exclamation-triangle me-1"></i>Required: ';
+                    const missing = [];
+                    
+                    if (!hasJD) missing.push('Job Description in textarea');
+                    if (!hasCVs) missing.push(`at least 1 parsed CV (currently: ${cvCount})`);
+                    
+                    message += missing.join(', ');
+                    messageDiv.innerHTML = message;
+                    messageDiv.className = 'form-text mt-2 text-warning';
+                }
+            } catch (error) {
+                console.error('Error updating analysis message:', error);
+            }
+        }
+        
+        // Add event listener for JD textarea to auto-update button
+        document.addEventListener('DOMContentLoaded', function() {
+            const jdTextarea = document.getElementById('job_description');
+            if (jdTextarea) {
+                jdTextarea.addEventListener('input', function() {
+                    console.log('JD textarea changed, updating analyze button...');
+                    setTimeout(() => {
+                        updateAnalyzeButton();
+                    }, 300); // Delay 300ms to avoid too many calls
+                });
+            }
+        });
+        
+        // Start Analysis
+        async function startAnalysis() {
+            console.log('startAnalysis called');
+            const jdText = document.getElementById('job_description').value.trim();
+            
+            if (!jdText) {
+                alert('Please enter Job Description or upload a JD file.');
+                return;
+            }
+            
+            // Submit form
+            document.getElementById('hidden_job_description').value = jdText;
+            document.getElementById('analysis-form').submit();
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            
+            // Load JD from session if available
+            loadJDFromSession();
+            
+            // Check functions availability
+            console.log('Functions loaded:', {
+                uploadJDFile: typeof uploadJDFile,
+                handleJDFileUpload: typeof handleJDFileUpload,
+                saveJDText: typeof saveJDText,
+                uploadCVFiles: typeof uploadCVFiles,
+                updateAnalyzeButton: typeof updateAnalyzeButton,
+                startAnalysis: typeof startAnalysis,
+                handleCVFileUpload: typeof handleCVFileUpload
+            });
+            
+            // Update analyze button after page load
+            setTimeout(() => {
+                updateAnalyzeButton();
+            }, 1000);
+        });
+    </script>
+    <script>
+        // Highlight selected CVs when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all selected CVs and highlight them
+            const selectedCVs = document.querySelectorAll('.cv-card');
+            selectedCVs.forEach(cvCard => {
+                const rank = cvCard.getAttribute('data-rank');
+                const statusBadge = document.getElementById('status-' + rank);
+                if (statusBadge && statusBadge.textContent.trim() === 'Selected') {
+                    cvCard.classList.add('selected');
+                    // Add indicator if not exists
+                    if (!cvCard.querySelector('.selected-indicator')) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'selected-indicator';
+                        indicator.innerHTML = '<i class="fas fa-star me-1"></i>SELECTED';
+                        cvCard.appendChild(indicator);
+                    }
+                }
+            });
+        });
+    </script>
+    <script>
+        // Debug Session - Check JD and CV status
+        async function debugSession() {
+            console.log('=== DEBUG SESSION ===');
+            
+            try {
+                // Check JD
+                console.log('Checking JD...');
+                const jdResponse = await fetch('/get_jd_info');
+                const jdData = await jdResponse.json();
+                console.log('JD Response:', jdData);
+                
+                // Check CV
+                console.log('Checking CVs...');
+                const cvResponse = await fetch('/get_uploaded_cvs_count');
+                const cvData = await cvResponse.json();
+                console.log('CV Response:', cvData);
+                
+                // Check session debug
+                console.log('Checking session debug...');
+                const sessionResponse = await fetch('/debug_session');
+                const sessionData = await sessionResponse.json();
+                console.log('Session Debug:', sessionData);
+                
+                // Summary
+                const hasJD = jdData.success && jdData.jd_info && jdData.jd_info.content;
+                const hasCVs = cvData.success && cvData.count > 0;
+                
+                console.log('=== SUMMARY ===');
+                console.log('Has JD:', hasJD);
+                console.log('Has CVs:', hasCVs, '(count:', cvData.count || 0, ')');
+                console.log('Should enable button:', hasJD && hasCVs);
+                
+                return {
+                    hasJD: hasJD,
+                    hasCVs: hasCVs,
+                    jdData: jdData,
+                    cvData: cvData,
+                    sessionData: sessionData
+                };
+                
+            } catch (error) {
+                console.error('Error in debugSession:', error);
+                return null;
+            }
+        }
+        
+        // Manual Update Analyze Button - Manual call
+        async function manualUpdateAnalyzeButton() {
+            console.log('=== MANUAL UPDATE ANALYZE BUTTON ===');
+            
+            const debugResult = await debugSession();
+            if (!debugResult) {
+                console.error('Debug session failed');
+                return;
+            }
+            
+            const analyzeBtn = document.getElementById('analyze-btn');
+            if (!analyzeBtn) {
+                console.error('Analyze button not found!');
+                return;
+            }
+            
+            const { hasJD, hasCVs, cvData } = debugResult;
+            
+            if (hasJD && hasCVs) {
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('btn-secondary');
+                analyzeBtn.classList.add('btn-warning');
+                console.log('✅ Analyze button ENABLED manually!');
+                
+                    // Update message
+                const messageDiv = document.querySelector('#analyze-btn').parentElement.querySelector('.form-text');
+                if (messageDiv) {
+                    messageDiv.innerHTML = `<i class="fas fa-check-circle me-1 text-success"></i>Ready to analyze! (${cvData.count} CVs)`;
+                    messageDiv.className = 'form-text mt-2 text-success';
+                }
+            } else {
+                analyzeBtn.disabled = true;
+                analyzeBtn.classList.remove('btn-warning');
+                analyzeBtn.classList.add('btn-secondary');
+                console.log('❌ Analyze button DISABLED manually');
+                
+                    // Update message
+                const messageDiv = document.querySelector('#analyze-btn').parentElement.querySelector('.form-text');
+                if (messageDiv) {
+                    let message = '<i class="fas fa-exclamation-triangle me-1"></i>Required: ';
+                    const missing = [];
+                    
+                    if (!hasJD) missing.push('Job Description');
+                    if (!hasCVs) missing.push(`at least 1 parsed CV (currently: ${cvData.count || 0})`);
+                    
+                    message += missing.join(', ');
+                    messageDiv.innerHTML = message;
+                    messageDiv.className = 'form-text mt-2 text-warning';
+                }
+            }
+        }
+    </script>
+    <script>
+        // Select Candidate - Select CV and change color to yellow
+        async function selectCandidate(rank) {
+            console.log('selectCandidate called for rank:', rank);
+            
+            try {
+                const response = await fetch(`/select_candidate/${rank}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('Select response:', data);
+                
+                if (data.success) {
+                    // Update UI
+                    updateCandidateUI(rank, true);
+                    console.log('✅ Candidate selected successfully');
+                } else {
+                    alert('Error occurred while selecting candidate: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error selecting candidate:', error);
+                alert('Error occurred while selecting candidate: ' + error.message);
+            }
+        }
+        
+        // Unselect Candidate - Unselect CV and remove yellow color
+        async function unselectCandidate(rank) {
+            console.log('unselectCandidate called for rank:', rank);
+            
+            try {
+                const response = await fetch(`/unselect_candidate/${rank}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('Unselect response:', data);
+                
+                if (data.success) {
+                    // Update UI
+                    updateCandidateUI(rank, false);
+                    console.log('✅ Candidate unselected successfully');
+                } else {
+                    alert('Error occurred while unselecting candidate: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error unselecting candidate:', error);
+                alert('Error occurred while unselecting candidate: ' + error.message);
+            }
+        }
+        
+        // Update Candidate UI - Update CV interface
+        function updateCandidateUI(rank, isSelected) {
+            console.log('updateCandidateUI called:', rank, isSelected);
+            
+            const cvCard = document.querySelector(`[data-rank="${rank}"]`);
+            const statusBadge = document.getElementById(`status-${rank}`);
+            
+            if (!cvCard) {
+                console.error('CV card not found for rank:', rank);
+                return;
+            }
+            
+            if (isSelected) {
+                // Select CV - change to yellow color
+                cvCard.classList.add('selected');
+                
+                // Update status badge
+                if (statusBadge) {
+                    statusBadge.textContent = 'Selected';
+                    statusBadge.className = 'badge bg-success';
+                }
+                
+                // Add selected indicator
+                if (!cvCard.querySelector('.selected-indicator')) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'selected-indicator';
+                    indicator.innerHTML = '<i class="fas fa-star me-1"></i>SELECTED';
+                    cvCard.appendChild(indicator);
+                }
+                
+                // Change Select button to UnSelect
+                const selectBtn = document.getElementById(`select-btn-${rank}`);
+                if (selectBtn) {
+                    selectBtn.id = `unselect-btn-${rank}`;
+                    selectBtn.className = 'btn btn-sm btn-outline-danger';
+                    selectBtn.innerHTML = '<i class="fas fa-times me-1"></i>UnSelect';
+                    selectBtn.setAttribute('onclick', `unselectCandidate(${rank})`);
+                }
+                
+                console.log('✅ CV selected and UI updated');
+                
+            } else {
+                // Unselect CV - remove yellow color
+                cvCard.classList.remove('selected');
+                
+                // Update status badge
+                if (statusBadge) {
+                    statusBadge.textContent = 'Not Selected';
+                    statusBadge.className = 'badge bg-secondary';
+                }
+                
+                // Remove selected indicator
+                const indicator = cvCard.querySelector('.selected-indicator');
+                if (indicator) {
+                    indicator.remove();
+                }
+                
+                // Change UnSelect button to Select
+                const unselectBtn = document.getElementById(`unselect-btn-${rank}`);
+                if (unselectBtn) {
+                    unselectBtn.id = `select-btn-${rank}`;
+                    unselectBtn.className = 'btn btn-sm btn-outline-primary';
+                    unselectBtn.innerHTML = '<i class="fas fa-check me-1"></i>Select';
+                    unselectBtn.setAttribute('onclick', `selectCandidate(${rank})`);
+                }
+                
+                console.log('✅ CV unselected and UI updated');
+            }
+        }
+        
+        // Toggle Candidate - Toggle Select/UnSelect status
+        async function toggleCandidate(rank) {
+            console.log('toggleCandidate called for rank:', rank);
+            
+            const cvCard = document.querySelector(`[data-rank="${rank}"]`);
+            if (!cvCard) {
+                console.error('CV card not found for rank:', rank);
+                return;
+            }
+            
+            const isCurrentlySelected = cvCard.classList.contains('selected');
+            
+            if (isCurrentlySelected) {
+                await unselectCandidate(rank);
+            } else {
+                await selectCandidate(rank);
+            }
+        }
+    </script>
+    <script>
+        async function submitFeedback(candidateFilename, rank) {
+            try {
+                const decision = document.getElementById(`decision-${rank}`).value;
+                const rating = document.getElementById(`rating-${rank}`).value;
+                const notes = document.getElementById(`notes-${rank}`).value;
+                
+                if (!decision) {
+                    alert('Please select a decision!');
+                    return;
+                }
+                
+                const feedbackData = {
+                    candidate_filename: candidateFilename,
+                    human_decision: decision,
+                    human_rating: rating ? parseInt(rating) : null,
+                    feedback_notes: notes
+                };
+                
+                console.log('Sending feedback:', feedbackData);
+                
+                const response = await fetch('/feedback/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(feedbackData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message
+                    showFeedbackSuccess(rank, decision);
+                    
+                    // Clear form
+                    document.getElementById(`decision-${rank}`).value = '';
+                    document.getElementById(`rating-${rank}`).value = '';
+                    document.getElementById(`notes-${rank}`).value = '';
+                    
+                    console.log('✅ Feedback sent successfully:', result);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error sending feedback:', error);
+                alert('Error occurred while submitting feedback!');
+            }
+        }
+
+        function showFeedbackSuccess(rank, decision) {
+            const decisionTexts = {
+                'hired': '✅ Hired',
+                'interviewed': '📞 Interviewed', 
+                'shortlisted': '📋 Shortlisted',
+                'rejected': '❌ Rejected',
+                'not_suitable': '⚠️ Not Suitable'
+            };
+            
+            // Create success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
+            successDiv.innerHTML = `
+                <i class="fas fa-check-circle me-1"></i>
+                <strong>Feedback submitted:</strong> ${decisionTexts[decision]}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Add after feedback form
+            const feedbackForm = document.querySelector(`#decision-${rank}`).closest('.bg-light');
+            feedbackForm.appendChild(successDiv);
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                successDiv.remove();
+            }, 3000);
+        }
+
+        // Function to improve model
+        async function improveModel() {
+            try {
+                const response = await fetch('/feedback/improve_model', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Model improved!\n\nNew weights:\n- TF-IDF: ${(result.new_weights.tfidf * 100).toFixed(1)}%\n- Semantic: ${(result.new_weights.semantic * 100).toFixed(1)}%\n- Skills: ${(result.new_weights.skill * 100).toFixed(1)}%\n\nImprovement score: ${(result.improvement_score * 100).toFixed(1)}%`);
+                } else {
+                    alert('⚠️ ' + result.message);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error improving model:', error);
+                alert('Error occurred while improving model!');
+            }
+        }
+
+        // Function to view feedback statistics
+        async function viewFeedbackStats() {
+            try {
+                const response = await fetch('/feedback/statistics');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const stats = result.data;
+                    let message = `📊 Feedback Statistics:\n\n`;
+                    message += `📈 Total feedback: ${stats.total_feedback}\n`;
+                    message += `⭐ Average rating: ${stats.average_rating}/5\n`;
+                    message += `📊 Feedback in the last 7 days: ${stats.recent_feedback}\n\n`;
+                    
+                    message += `📝 Decision distribution:\n`;
+                    for (const [decision, count] of Object.entries(stats.decision_distribution)) {
+                        message += `- ${decision}: ${count}\n`;
+                    }
+                    
+                    alert(message);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error getting stats:', error);
+                alert('Error occurred while getting statistics!');
+            }
+        }
+
+        // Initialize tooltips when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        // Function to show detailed TF-IDF explanation
+        function showTFIDFExplanation() {
+            const modal = `
+                <div class="modal fade" id="tfidfModal" tabindex="-1" aria-labelledby="tfidfModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="tfidfModalLabel">
+                                    <i class="fas fa-calculator me-2"></i>Understanding TF-IDF Scoring
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-search text-primary me-2"></i>What is TF-IDF?</h6>
+                                        <p>TF-IDF (Term Frequency-Inverse Document Frequency) is a numerical statistic that reflects how important a word is to a document in a collection of documents.</p>
+                                        
+                                        <h6><i class="fas fa-cogs text-success me-2"></i>How it works:</h6>
+                                        <ul class="small">
+                                            <li><strong>TF (Term Frequency):</strong> Counts how often a word appears in a document</li>
+                                            <li><strong>IDF (Inverse Document Frequency):</strong> Measures how rare a word is across all documents</li>
+                                            <li><strong>TF-IDF Score:</strong> TF × IDF = Word importance</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-lightbulb text-warning me-2"></i>Example:</h6>
+                                        <div class="bg-light p-3 rounded">
+                                            <p class="small mb-2"><strong>Job Description:</strong> "Looking for Python developer with machine learning experience"</p>
+                                            <p class="small mb-2"><strong>Resume:</strong> "5 years Python experience, worked on ML projects using TensorFlow"</p>
+                                            <hr>
+                                            <p class="small mb-0"><strong>TF-IDF Analysis:</strong></p>
+                                            <ul class="small mb-0">
+                                                <li>"Python" appears in both → High TF-IDF score</li>
+                                                <li>"Machine learning" vs "ML" → Semantic similarity</li>
+                                                <li>"TensorFlow" is specific skill → High importance</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Why TF-IDF matters:</h6>
+                                    <p class="mb-0 small">TF-IDF helps identify candidates whose resumes contain the most relevant and important keywords from your job description, ensuring better matches for your specific requirements.</p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('tfidfModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modal);
+            
+            // Show modal
+            const tfidfModal = new bootstrap.Modal(document.getElementById('tfidfModal'));
+            tfidfModal.show();
+        }
+
+        // Mobile-specific functions
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        function isTouchDevice() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+
+        // Mobile file upload handling
+        function handleMobileFileUpload() {
+            if (isMobile()) {
+                // Add mobile-specific file handling
+                const fileInputs = document.querySelectorAll('input[type="file"]');
+                fileInputs.forEach(input => {
+                    input.addEventListener('change', function(e) {
+                        if (e.target.files.length > 0) {
+                            showMobileFileInfo(e.target.files);
+                        }
+                    });
+                });
+            }
+        }
+
+        function showMobileFileInfo(files) {
+            let message = `Selected ${files.length} file(s):\n`;
+            for (let i = 0; i < files.length; i++) {
+                message += `• ${files[i].name} (${(files[i].size / 1024 / 1024).toFixed(2)} MB)\n`;
+            }
+            
+            if (isMobile()) {
+                // Use mobile-friendly alert
+                showMobileAlert(message, 'info');
+            }
+        }
+
+        function showMobileAlert(message, type = 'info') {
+            const alertClass = type === 'error' ? 'alert-danger' : 
+                              type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertClass} alert-dismissible fade show mobile-optimized`;
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 10px;
+                right: 10px;
+                z-index: 9999;
+                font-size: 14px;
+                padding: 15px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            
+            alertDiv.innerHTML = `
+                <div style="white-space: pre-line;">${message}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Mobile swipe gestures for cards
+        function initMobileSwipeGestures() {
+            if (isTouchDevice()) {
+                const cards = document.querySelectorAll('.cv-card');
+                cards.forEach(card => {
+                    let startX = 0;
+                    let startY = 0;
+                    
+                    card.addEventListener('touchstart', function(e) {
+                        startX = e.touches[0].clientX;
+                        startY = e.touches[0].clientY;
+                    });
+                    
+                    card.addEventListener('touchend', function(e) {
+                        const endX = e.changedTouches[0].clientX;
+                        const endY = e.changedTouches[0].clientY;
+                        const diffX = startX - endX;
+                        const diffY = startY - endY;
+                        
+                        // Horizontal swipe (left/right)
+                        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                            if (diffX > 0) {
+                                // Swipe left - show actions
+                                showMobileCardActions(card);
+                            } else {
+                                // Swipe right - hide actions
+                                hideMobileCardActions(card);
+                            }
+                        }
+                    });
+                });
+            }
+        }
+
+        function showMobileCardActions(card) {
+            // Add mobile action buttons
+            if (!card.querySelector('.mobile-actions')) {
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'mobile-actions';
+                actionsDiv.style.cssText = `
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    padding: 0 10px;
+                    border-radius: 0 8px 8px 0;
+                `;
+                
+                actionsDiv.innerHTML = `
+                    <button class="btn btn-sm btn-light me-2" onclick="viewCV('${card.dataset.rank}')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="selectCandidate(${card.dataset.rank})">
+                        <i class="fas fa-check"></i>
+                    </button>
+                `;
+                
+                card.style.position = 'relative';
+                card.appendChild(actionsDiv);
+            }
+        }
+
+        function hideMobileCardActions(card) {
+            const actionsDiv = card.querySelector('.mobile-actions');
+            if (actionsDiv) {
+                actionsDiv.remove();
+            }
+        }
+
+        // Mobile-optimized form handling
+        function optimizeMobileForms() {
+            if (isMobile()) {
+                // Prevent zoom on input focus (iOS)
+                const inputs = document.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    if (input.style.fontSize !== '16px') {
+                        input.style.fontSize = '16px';
+                    }
+                });
+                
+                // Add mobile-friendly labels
+                const labels = document.querySelectorAll('label');
+                labels.forEach(label => {
+                    label.style.fontSize = '16px';
+                    label.style.marginBottom = '8px';
+                });
+            }
+        }
+
+        // Mobile loading indicator
+        function showMobileLoading(message = 'Loading...') {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'mobile-loading';
+            loadingDiv.className = 'mobile-loading';
+            loadingDiv.style.cssText = `
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                font-size: 16px;
+            `;
+            
+            loadingDiv.innerHTML = `
+                <div class="spinner-border text-light mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div>${message}</div>
+            `;
+            
+            document.body.appendChild(loadingDiv);
+        }
+
+        function hideMobileLoading() {
+            const loadingDiv = document.getElementById('mobile-loading');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
+        }
+
+        // Initialize mobile features when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Initialize mobile features
+            if (isMobile()) {
+                handleMobileFileUpload();
+                initMobileSwipeGestures();
+                optimizeMobileForms();
+                
+                // Add mobile class to body
+                document.body.classList.add('mobile-optimized');
+                
+                // Show mobile welcome message
+                setTimeout(() => {
+                    showMobileAlert('Welcome to AI Resume Ranker! Swipe cards left for quick actions.', 'info');
+                }, 1000);
+            }
+            
+            // Register Service Worker for PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered successfully:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (isMobile()) {
+                optimizeMobileForms();
+            }
+        });
+
+        // Mobile-friendly error handling
+        function handleMobileError(error, context = '') {
+            console.error('Mobile Error:', error);
+            const message = `Error: ${error.message || error}\n${context}`;
+            showMobileAlert(message, 'error');
+        }
+
+        // Override existing functions for mobile optimization
+        const originalUploadCVFiles = window.uploadCVFiles;
+        window.uploadCVFiles = async function() {
+            if (isMobile()) {
+                showMobileLoading('Uploading files...');
+            }
+            
+            try {
+                await originalUploadCVFiles();
+                if (isMobile()) {
+                    hideMobileLoading();
+                    showMobileAlert('Files uploaded successfully!', 'success');
+                }
+            } catch (error) {
+                if (isMobile()) {
+                    hideMobileLoading();
+                    handleMobileError(error, 'File upload failed');
+                }
+                throw error;
+            }
+        };
+    </script>
+    <script>
+        // Load JD from session when page loads
+        async function loadJDFromSession() {
+            try {
+                const response = await fetch('/get_jd_from_session');
+                const data = await response.json();
+                
+                if (data.success && data.jd_data) {
+                    const textArea = document.getElementById('job_description');
+                    const uploadBtn = document.getElementById('upload-jd-btn');
+                    
+                    if (textArea && data.jd_data.content) {
+                        textArea.value = data.jd_data.content;
+                        console.log('JD content loaded from session');
+                    }
+                    
+                    if (uploadBtn && data.jd_data.filename) {
+                        uploadBtn.innerHTML = '<i class="fas fa-check me-2"></i>Uploaded';
+                        uploadBtn.className = 'btn btn-success';
+                        uploadBtn.disabled = false;
+                        console.log('JD upload button updated from session');
+                    }
+                }
+            } catch (error) {
+                console.log('No JD in session or error loading:', error);
+            }
+        }
+    </script>
+    <script>
+        // Load feedback for all CVs when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // ... existing code ...
+            
+            // Load feedback for all CVs
+            loadAllFeedback();
+        });
+        
+        async function loadAllFeedback() {
+            try {
+                console.log('📊 Loading feedback for all CVs...');
+                
+                // Get all CV cards
+                const cvCards = document.querySelectorAll('.cv-card');
+                
+                for (const card of cvCards) {
+                    const rank = card.getAttribute('data-rank');
+                    if (rank) {
+                        // Get filename from the card
+                        const viewBtn = card.querySelector('a[href*="cv_text"]');
+                        if (viewBtn) {
+                            const href = viewBtn.getAttribute('href');
+                            const filename = href.split('/').pop();
+                            await loadCVFeedback(filename);
+                        }
+                    }
+                }
+                
+                console.log('✅ Loaded feedback for all CVs');
+                
+            } catch (error) {
+                console.error('❌ Error loading all feedback:', error);
+            }
+        }
+        
+        async function loadCVFeedback(candidateFilename) {
+            try {
+                const response = await fetch(`/feedback/get_cv_feedback/${encodeURIComponent(candidateFilename)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayCVFeedback(candidateFilename, result.feedback_history, result.latest_feedback);
+                } else {
+                    console.error('❌ Error loading feedback for', candidateFilename, ':', result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading CV feedback:', error);
+            }
+        }
+        
+        function displayCVFeedback(candidateFilename, feedbackHistory, latestFeedback) {
+            const displayDiv = document.getElementById(`feedback-display-${candidateFilename}`);
+            
+            if (!displayDiv) return;
+            
+            if (feedbackHistory.length === 0) {
+                displayDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-comment-slash mb-1"></i><br>
+                        <small>No feedback yet</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Display latest feedback
+            let feedbackHtml = '';
+            
+            if (latestFeedback) {
+                const decisionTexts = {
+                    'hired': '✅ Hired',
+                    'interviewed': ' Interview',
+                    'shortlisted': '📋 Shortlist',
+                    'rejected': '❌ Rejected',
+                    'not_suitable': '⚠️ Not suitable'
+                };
+                
+                feedbackHtml = `
+                    <div class="latest-feedback mb-2">
+                        <div class="feedback-item ${latestFeedback.decision}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>${decisionTexts[latestFeedback.decision] || latestFeedback.decision}</strong>
+                                    ${latestFeedback.rating ? `<span class="badge bg-secondary ms-2">${latestFeedback.rating}/5</span>` : ''}
+                                </div>
+                                <small class="text-muted">${formatDate(latestFeedback.timestamp)}</small>
+                            </div>
+                        </div>
+                        ${feedbackHistory.length > 1 ? `<small class="text-muted">... and ${feedbackHistory.length - 1} other feedback</small>` : ''}
+                    </div>
+                `;
+            }
+            
+            displayDiv.innerHTML = feedbackHtml;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+    </script>
+</body>
+</html>

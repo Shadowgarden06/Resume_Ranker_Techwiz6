@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document QA System - Resume Ranker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .qa-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .question-box { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .answer-box { background: #e8f5e8; border-radius: 10px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #28a745; }
+        .document-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 10px; transition: all 0.3s ease; }
+        .document-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .confidence-badge { font-size: 0.8em; }
+        .source-item { background: #f8f9fa; border-radius: 5px; padding: 10px; margin: 5px 0; font-size: 0.9em; }
+        .loading { display: none; }
+        .spinner-border-sm { width: 1rem; height: 1rem; }
+        .document-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .document-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        #availableFilesList {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            resize: vertical;
+        }
+        
+        #availableFilesList:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        
+        .btn-group .btn {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        #selectedCount {
+            font-weight: 500;
+        }
+        
+        .form-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        
+        .file-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .file-item:hover {
+            background-color: #e9ecef !important;
+            border-color: #0d6efd !important;
+        }
+        
+        .file-item .form-check-input:checked + .form-check-label {
+            color: #0d6efd;
+        }
+        
+        .file-item .form-check-input:checked + .form-check-label .file-name {
+            font-weight: 600;
+        }
+        
+        .file-item .form-check-input:disabled + .form-check-label {
+            opacity: 0.6;
+        }
+        
+        #filesListContainer {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+        }
+        
+        .file-item .badge {
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index_bp.index') }}">
+                <i class="fas fa-file-alt me-2"></i>AI Resume Ranker
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index_bp.index') }}"><i class="fas fa-home me-1"></i>Home</a>
+                <a class="nav-link" href="{{ url_for('uploads_bp.upload_list') }}"><i class="fas fa-upload me-1"></i>Uploaded CVs</a>
+                <a class="nav-link" href="{{ url_for('search_bp.search_candidates') }}"><i class="fas fa-search me-1"></i>Search</a>
+                <a class="nav-link active" href="{{ url_for('qa_bp.qa_home') }}"><i class="fas fa-question-circle me-1"></i>Document QA</a>
+                <a class="nav-link" href="{{ url_for('login_bp.logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="qa-container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4"><i class="fas fa-question-circle text-primary me-2"></i>Document Question & Answer System</h1>
+                {% if qa_error %}
+                <div class="alert alert-warning" role="alert">
+                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Document QA Not Available</h4>
+                    <p>{{ qa_error }}</p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>To enable Document QA:</strong><br>
+                        1. Get a Google API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a><br>
+                        2. Set environment variable: <code>GOOGLE_API_KEY=your_api_key_here</code><br>
+                        3. Restart the application
+                    </p>
+                    <p class="mt-2 mb-0">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Document QA is an optional feature. The main resume ranking functionality works without it.
+                        </small>
+                    </p>
+                </div>
+                {% else %}
+                <!-- Normal QA interface -->
+                <p class="text-muted mb-4">Ask questions about your uploaded documents and get intelligent answers powered by AI.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="question-box">
+                    <h4 class="mb-3"><i class="fas fa-comment-dots me-2"></i>Ask a Question</h4>
+                    <form id="questionForm">
+                        <div class="mb-3">
+                            <label for="question" class="form-label">Your Question:</label>
+                            <textarea class="form-control" id="question" name="question" rows="3" placeholder="e.g., What skills does this candidate have?"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="documentSelect" class="form-label">Select Document (Optional):</label>
+                            <select class="form-select" id="documentSelect" name="document_id">
+                                <option value="all">All Documents</option>
+                                {% for doc in documents %}
+                                <option value="{{ doc.id }}">{{ doc.id }} ({{ doc.chunk_count }} chunks)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="loading"><span class="spinner-border spinner-border-sm me-2" role="status"></span></span>
+                            <span class="not-loading"><i class="fas fa-paper-plane me-2"></i></span>
+                            Ask Question
+                        </button>
+                    </form>
+                </div>
+
+                <div id="answerSection" style="display: none;">
+                    <div class="answer-box">
+                        <h5 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Answer</h5>
+                        <div id="answerText"></div>
+                        <div class="mt-3">
+                            <span class="badge bg-success confidence-badge" id="confidenceBadge"></span>
+                            <span class="text-muted ms-2" id="sourceInfo"></span>
+                        </div>
+                    </div>
+                    <div id="sourcesSection" style="display: none;">
+                        <h6 class="mb-3"><i class="fas fa-quote-left me-2"></i>Sources</h6>
+                        <div id="sourcesList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Document Management</h5></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Available Files:</label>
+                            <div class="mb-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllFiles()">
+                                    <i class="fas fa-check-square me-1"></i>Select All
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                                    <i class="fas fa-square me-1"></i>Clear All
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="refreshFileList()">
+                                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                                </button>
+                            </div>
+                            
+                            <!-- Checkbox list for file selection -->
+                            <div id="filesListContainer" class="border rounded p-3" style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                                <div id="filesList">
+                                    <div class="text-center text-muted py-3">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading available files...
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-text mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Check the files you want to add to QA system. You can select multiple files at once.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-success" id="addDocumentBtn" onclick="addSelectedFilesToQA()" disabled>
+                                <i class="fas fa-plus me-2"></i>Add Selected Files to QA
+                            </button>
+                            <span id="selectedCount" class="ms-2 text-muted">0 files selected</span>
+                        </div>
+                        
+                        <hr>
+                        <h6>Documents in QA System:</h6>
+                        <div id="documentsList">
+                            {% for doc in documents %}
+                            <div class="document-card">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ doc.id }}</strong><br>
+                                        <small class="text-muted">{{ doc.chunk_count }} chunks</small><br>
+                                        <small class="text-muted">{{ doc.added_at[:19] }}</small>
+                                    </div>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="removeDocument('{{ doc.id }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            {% if not documents %}
+                            <div class="text-muted text-center py-3">
+                                <i class="fas fa-folder-open fa-2x mb-2"></i><br>
+                                No documents in QA system yet.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let availableFiles = [];
+
+        function loadAvailableFiles() {
+            const container = document.getElementById('filesList');
+            container.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading available files...</div>';
+            
+            fetch('/get_available_files')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        availableFiles = data.files;
+                        updateFileListDisplay();
+                    } else {
+                        container.innerHTML = `<div class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.message}</div>`;
+                        console.error('Error loading files:', data.message);
+                    }
+                })
+                .catch(error => {
+                    container.innerHTML = `<div class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${error.message}</div>`;
+                    console.error('Error loading available files:', error);
+                });
+        }
+
+        function updateFileListDisplay() {
+            const container = document.getElementById('filesList');
+            
+            if (availableFiles.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-folder-open me-2"></i>No files available</div>';
+                return;
+            }
+            
+            let html = '';
+            availableFiles.forEach((file, index) => {
+                const fileId = `file_${index}`;
+                const fileSize = formatFileSize(file.size);
+                const fileDate = new Date(file.created).toLocaleDateString();
+                
+                html += `
+                    <div class="file-item mb-2 p-2 border rounded" style="background-color: white;">
+                        <div class="form-check">
+                            <input class="form-check-input file-checkbox" type="checkbox" 
+                                   id="${fileId}" value="${file.filename}" 
+                                   onchange="updateSelectedCount()">
+                            <label class="form-check-label w-100" for="${fileId}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="file-name">${file.filename}</strong><br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-file me-1"></i>${fileSize} • 
+                                            <i class="fas fa-calendar me-1"></i>${fileDate}
+                                        </small>
+                                    </div>
+                                    <div class="file-status">
+                                        <span class="badge bg-secondary">Available</span>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            updateSelectedCount();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function selectAllFiles() {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateSelectedCount();
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            
+            const countSpan = document.getElementById('selectedCount');
+            countSpan.textContent = `${selectedCount} files selected`;
+            
+            const addBtn = document.getElementById('addDocumentBtn');
+            addBtn.disabled = selectedCount === 0;
+            
+            // Update button text
+            if (selectedCount > 0) {
+                addBtn.innerHTML = `<i class="fas fa-plus me-2"></i>Add ${selectedCount} Files to QA`;
+            } else {
+                addBtn.innerHTML = `<i class="fas fa-plus me-2"></i>Add Selected Files to QA`;
+            }
+        }
+
+        function getSelectedFiles() {
+            const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+            const selectedFiles = [];
+            
+            checkboxes.forEach(checkbox => {
+                const filename = checkbox.value;
+                const file = availableFiles.find(f => f.filename === filename);
+                if (file) {
+                    selectedFiles.push(file);
+                }
+            });
+            
+            return selectedFiles;
+        }
+
+        function addSelectedFilesToQA() {
+            const selectedFiles = getSelectedFiles();
+            
+            if (selectedFiles.length === 0) {
+                alert('Please select at least one file.');
+                return;
+            }
+            
+            const addBtn = document.getElementById('addDocumentBtn');
+            const originalText = addBtn.innerHTML;
+            addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+            addBtn.disabled = true;
+            
+            let completed = 0;
+            let errors = [];
+            
+            // Add files one by one
+            selectedFiles.forEach((file, index) => {
+                const formData = new FormData();
+                formData.append('filename', file.filename);
+                
+                fetch('{{ url_for('qa_bp.add_document_to_qa') }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    completed++;
+                    
+                    if (data.success) {
+                        console.log(`✅ Added: ${file.filename}`);
+                        // Update file status
+                        updateFileStatus(file.filename, 'success');
+                    } else {
+                        errors.push(`${file.filename}: ${data.message}`);
+                        console.error(`❌ Error adding ${file.filename}:`, data.message);
+                        updateFileStatus(file.filename, 'error');
+                    }
+                    
+                    // Update progress
+                    addBtn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>Adding... (${completed}/${selectedFiles.length})`;
+                    
+                    // All files processed
+                    if (completed === selectedFiles.length) {
+                        if (errors.length === 0) {
+                            alert(`Successfully added ${selectedFiles.length} files to QA system!`);
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            const errorMsg = `Added ${selectedFiles.length - errors.length} files successfully.\n\nErrors:\n${errors.join('\n')}`;
+                            alert(errorMsg);
+                            setTimeout(() => location.reload(), 1000);
+                        }
+                    }
+                })
+                .catch(err => {
+                    completed++;
+                    errors.push(`${file.filename}: ${err.message}`);
+                    console.error(`❌ Error adding ${file.filename}:`, err);
+                    updateFileStatus(file.filename, 'error');
+                    
+                    if (completed === selectedFiles.length) {
+                        const errorMsg = `Added ${selectedFiles.length - errors.length} files successfully.\n\nErrors:\n${errors.join('\n')}`;
+                        alert(errorMsg);
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                });
+            });
+        }
+
+        function updateFileStatus(filename, status) {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.value === filename) {
+                    const fileItem = checkbox.closest('.file-item');
+                    const statusBadge = fileItem.querySelector('.file-status .badge');
+                    
+                    if (status === 'success') {
+                        statusBadge.className = 'badge bg-success';
+                        statusBadge.textContent = 'Added';
+                        checkbox.disabled = true;
+                    } else if (status === 'error') {
+                        statusBadge.className = 'badge bg-danger';
+                        statusBadge.textContent = 'Error';
+                    }
+                }
+            });
+        }
+
+        function refreshFileList() {
+            loadAvailableFiles();
+        }
+
+        function removeDocument(documentId) {
+            if (!confirm('Are you sure you want to remove this document from the QA system?')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('document_id', documentId);
+            
+            fetch('{{ url_for('qa_bp.remove_document_from_qa') }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error removing document from QA system');
+            });
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableFiles();
+        });
+        document.getElementById('questionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const question = document.getElementById('question').value.trim();
+            const documentId = document.getElementById('documentSelect').value;
+            if (!question) { alert('Please enter a question.'); return; }
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const loading = submitBtn.querySelector('.loading');
+            const notLoading = submitBtn.querySelector('.not-loading');
+            loading.style.display = 'inline'; notLoading.style.display = 'none'; submitBtn.disabled = true;
+            const formData = new FormData(); formData.append('question', question); formData.append('document_id', documentId);
+            fetch('{{ url_for('qa_bp.ask_question') }}', { method: 'POST', body: formData })
+            .then(r => r.json()).then(data => {
+                loading.style.display = 'none'; notLoading.style.display = 'inline'; submitBtn.disabled = false;
+                if (data.success) {
+                    document.getElementById('answerText').innerHTML = data.answer.replace(/\n/g, '<br>');
+                    document.getElementById('confidenceBadge').textContent = `Confidence: ${data.confidence}%`;
+                    document.getElementById('sourceInfo').textContent = `Source: ${data.document_id}`;
+                    if (data.sources && data.sources.length > 0) {
+                        const sourcesList = document.getElementById('sourcesList'); sourcesList.innerHTML = '';
+                        data.sources.forEach((source, index) => {
+                            const sourceDiv = document.createElement('div'); sourceDiv.className = 'source-item';
+                            sourceDiv.innerHTML = `<strong>Source ${index + 1}:</strong> <span class="text-muted">(Similarity: ${(source.similarity * 100).toFixed(1)}%)</span><br><small>${source.text.substring(0, 200)}${source.text.length > 200 ? '...' : ''}</small>`;
+                            sourcesList.appendChild(sourceDiv);
+                        });
+                        document.getElementById('sourcesSection').style.display = 'block';
+                    } else { document.getElementById('sourcesSection').style.display = 'none'; }
+                    document.getElementById('answerSection').style.display = 'block';
+                } else { alert('Error: ' + data.message); }
+            }).catch(err => {
+                loading.style.display = 'none'; notLoading.style.display = 'inline'; submitBtn.disabled = false;
+                alert('Error asking question'); console.error(err);
+            });
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,8 @@
+timestamp,session_id,user_id,job_description_hash,candidate_filename,candidate_name,candidate_email,ai_rank,ai_combined_score,ai_tfidf_score,ai_semantic_score,ai_skill_score,human_decision,human_rating,feedback_notes
+2025-09-13T22:36:07.445826,session_20250913_223607,Candidate 62 Sr. BSA Resume.docx,Unknown,0,0,0,0,0,interviewed,4,
+2025-09-13T22:45:13.404701,session_20250913_224513,Adelina_Erimia_PMP1.docx,Unknown,0,0,0,0,0,hired,4,good selection
+2025-09-13T22:45:59.101588,session_20250913_224559,Business Analyst_GHyma.docx,Unknown,0,0,0,0,0,interviewed,3,waiting interview
+2025-09-13T23:06:36.729589,session_20250913_230636,Business Analyst_GHyma.docx,Unknown,0,0,0,0,0,hired,,
+2025-09-13T23:11:35.573449,session_20250913_231135,Business Analyst_GHyma.docx,Unknown,0,0,0,0,0,hired,,
+2025-09-13T23:11:43.912617,session_20250913_231143,Business Analyst_GHyma.docx,Unknown,0,0,0,0,0,interviewed,,
+2025-09-13T23:15:24.825556,session_20250913_231524,Business Analyst_GHyma.docx,Unknown,0,0,0,0,0,interviewed,,

@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uploaded CVs - AI Resume Ranker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .upload-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .cv-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px; transition: all 0.3s ease; }
+        .cv-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .cv-card.selected { background-color: #fff3cd; border-color: #ffc107; box-shadow: 0 0 10px rgba(255, 193, 7, 0.3); }
+        .delete-btn { transition: all 0.3s ease; }
+        .delete-btn:hover { transform: scale(1.1); }
+        .selected-indicator { position: absolute; top: 10px; right: 10px; background: #ffc107; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        
+        .feedback-section {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            margin-top: 10px;
+        }
+        
+        .feedback-form {
+            margin-top: 10px;
+        }
+        
+        .feedback-form .form-select,
+        .feedback-form .form-control {
+            font-size: 0.85em;
+        }
+
+        .latest-feedback {
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .feedback-item {
+            background: white;
+            border-radius: 4px;
+            padding: 6px;
+            margin-bottom: 4px;
+            border-left: 3px solid #007bff;
+            font-size: 0.85em;
+        }
+        
+        .feedback-item.hired { border-left-color: #28a745; }
+        .feedback-item.interviewed { border-left-color: #ffc107; }
+        .feedback-item.shortlisted { border-left-color: #17a2b8; }
+        .feedback-item.rejected { border-left-color: #dc3545; }
+        .feedback-item.not_suitable { border-left-color: #6c757d; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index_bp.index') }}">
+                <i class="fas fa-file-alt me-2"></i>Resume Ranker
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index_bp.index') }}"><i class="fas fa-home me-1"></i>Home</a>
+                <a class="nav-link active" href="{{ url_for('uploads_bp.upload_list') }}"><i class="fas fa-upload me-1"></i>Uploaded CVs</a>
+                <a class="nav-link" href="{{ url_for('search_bp.search_candidates') }}"><i class="fas fa-search me-1"></i>Search</a>
+                <a class="nav-link" href="{{ url_for('qa_bp.qa_home') }}"><i class="fas fa-question-circle me-1"></i>Document QA</a>
+                <a class="nav-link" href="{{ url_for('login_bp.logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="upload-container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4"><i class="fas fa-upload text-primary me-2"></i>Uploaded CVs</h1>
+                
+                <!-- TF-IDF Explanation Section -->
+                <div class="alert alert-info" role="alert">
+                    <h6><i class="fas fa-info-circle me-2"></i>How Our AI Ranking Works:</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-search me-1"></i>TF-IDF Score:</strong>
+                            <small class="d-block text-muted">Measures keyword frequency and importance. Higher score = more relevant keywords match between resume and job description.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-brain me-1"></i>Semantic Score:</strong>
+                            <small class="d-block text-muted">Uses AI to understand meaning and context. Captures similar concepts even with different words.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-tools me-1"></i>Skills Score:</strong>
+                            <small class="d-block text-muted">Matches technical skills and competencies. Identifies specific abilities mentioned in both resume and job requirements.</small>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#tfidfDetails" aria-expanded="false">
+                            <i class="fas fa-question-circle me-1"></i>Learn More About TF-IDF
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary ms-2" type="button" onclick="showTFIDFExplanation()">
+                            <i class="fas fa-graduation-cap me-1"></i>Detailed TF-IDF Guide
+                        </button>
+                    </div>
+                    <div class="collapse mt-3" id="tfidfDetails">
+                        <div class="card card-body bg-light">
+                            <h6><i class="fas fa-lightbulb me-2"></i>What is TF-IDF?</h6>
+                            <p class="mb-2"><strong>TF (Term Frequency):</strong> How often a word appears in the resume compared to the job description.</p>
+                            <p class="mb-2"><strong>IDF (Inverse Document Frequency):</strong> How rare or important a word is across all documents.</p>
+                            <p class="mb-0"><strong>Example:</strong> If "Python" appears frequently in both your resume and the job description, and "Python" is a specialized skill (not common in all resumes), you'll get a high TF-IDF score for that keyword.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h3><i class="fas fa-file-alt me-2"></i>{{ total }}</h3>
+                    <p class="mb-0">Total Uploaded</p>
+                </div>
+                <div class="col-md-4">
+                    <h3><i class="fas fa-filter me-2"></i>{{ unique }}</h3>
+                    <p class="mb-0">Unique (Deduped)</p>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-outline-light btn-sm" onclick="clearAllUploads()" title="Delete all uploaded files">
+                        <i class="fas fa-trash-alt me-1"></i>Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert messages -->
+        <div id="alert-container"></div>
+
+        {% if cvs %}
+        <div class="row">
+            {% for cv in cvs %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="cv-card position-relative" id="cv-card-{{ cv.filename }}" data-filename="{{ cv.filename }}">
+                    <!-- Selected indicator -->
+                    <div class="selected-indicator" id="selected-indicator-{{ cv.filename }}" style="display: none;">
+                        SELECTED
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        {% set display_name = cv.name or 'N/A' %}
+                        {% set truncated_name = display_name[:100] + '...' if display_name|length > 100 else display_name %}
+                        <h5 class="mb-0">#{{ loop.index }} {{ truncated_name }}</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary">{{ cv.years_exp or 0 }} years</span>
+                            <button class="btn btn-sm btn-outline-danger delete-btn" 
+                                    onclick="deleteCV('{{ cv.filename }}', {{ loop.index }})"
+                                    title="Delete CV">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            <i class="fas fa-envelope me-1"></i>{{ (cv.email or 'N/A')[:50] }}{% if (cv.email or '')|length > 50 %}...{% endif %}<br>
+                            <i class="fas fa-phone me-1"></i>{{ (cv.phone or 'N/A')[:20] }}{% if (cv.phone or '')|length > 20 %}...{% endif %}<br>
+                            <i class="fas fa-file me-1"></i>{{ cv.filename[:30] }}{% if cv.filename|length > 30 %}...{% endif %}<br>
+                            <i class="fas fa-clock me-1"></i>{{ cv.upload_time[:19] if cv.upload_time else '' }}
+                        </small>
+                    </div>
+                    {% set skills_text = cv.skills_text if cv.skills_text is string else (cv.skills_text|join(', ')) %}
+                    <div class="mb-3">
+                        <strong>Skills:</strong><br>
+                        {% if skills_text and skills_text.strip() %}
+                            <small>{{ skills_text[:100] }}{% if skills_text|length > 100 %}...{% endif %}</small>
+                        {% else %}
+                            <small class="text-muted"><i>No skills detected</i></small>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Select/UnSelect buttons -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-secondary" id="status-{{ cv.filename }}">Not Selected</span>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-success" id="select-btn-{{ cv.filename }}" onclick="selectCandidate('{{ cv.filename }}')">
+                                <i class="fas fa-check me-1"></i>Select
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" id="unselect-btn-{{ cv.filename }}" onclick="unselectCandidate('{{ cv.filename }}')" style="display: none;">
+                                <i class="fas fa-times me-1"></i>UnSelect
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Feedback section -->
+                    <div class="feedback-section">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-1"><i class="fas fa-comment-dots me-1"></i>Feedback for AI</h6>
+                            <span class="badge bg-secondary" id="feedback-count-{{ cv.filename }}">0</span>
+                        </div>
+                        
+                        <!-- Display existing feedback -->
+                        <div id="feedback-display-{{ cv.filename }}" class="mb-2">
+                            <!-- Will be loaded from JSON -->
+                        </div>
+                        
+                        <!-- Form to submit new feedback -->
+                        <div class="feedback-form">
+                            <div class="row">
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm mb-2" id="decision-{{ cv.filename }}">
+                                        <option value="">Select decision...</option>
+                                        <option value="hired">✅ Hired</option>
+                                        <option value="interviewed">📞 Interview</option>
+                                        <option value="shortlisted">📋 Shortlist</option>
+                                        <option value="rejected">❌ Rejected</option>
+                                        <option value="not_suitable">⚠️ Not suitable</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm mb-2" id="rating-{{ cv.filename }}">
+                                        <option value="">Rating (1-5)...</option>
+                                        <option value="5">5 - Excellent</option>
+                                        <option value="4">4 - Good</option>
+                                        <option value="3">3 - Average</option>
+                                        <option value="2">2 - Poor</option>
+                                        <option value="1">1 - Very poor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <textarea class="form-control form-control-sm mb-2" id="notes-{{ cv.filename }}" 
+                                      placeholder="Additional notes (optional)..." rows="2"></textarea>
+                            <button class="btn btn-sm btn-success" onclick="submitFeedback('{{ cv.filename }}')">
+                                <i class="fas fa-paper-plane me-1"></i>Submit Feedback
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('uploads_bp.cv_text', filename=cv.filename) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>View
+                        </a>
+                        <a href="{{ url_for('uploads_bp.cv_file', filename=cv.filename) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-download me-1"></i>Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-upload fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No uploaded CVs found</h4>
+            <p class="text-muted">Upload some CVs to get started</p>
+            <a href="{{ url_for('index_bp.index') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Upload CVs
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Download buttons -->
+    <div class="download-section mb-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-download me-2"></i>Download CV list</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-success" onclick="downloadUploadList('csv')">
+                                <i class="fas fa-file-csv me-1"></i>Download CSV
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="downloadUploadList('excel')">
+                                <i class="fas fa-file-excel me-1"></i>Download Excel
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="downloadUploadList('pdf')">
+                                <i class="fas fa-file-pdf me-1"></i>Download PDF
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Downloaded file will include feedback of each CV
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variable to store selected candidates
+        let selectedCandidates = new Set();
+        
+        // Load selected candidates from session when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSelectedCandidates();
+            loadAllFeedback(); // Load feedback for all CVs
+        });
+        
+        function loadSelectedCandidates() {
+            fetch('/get_selected_candidates')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        selectedCandidates = new Set(data.selected_candidates);
+                        updateAllCandidateUI();
+                    }
+                })
+                .catch(error => {
+                    console.log('No selected candidates found or error loading:', error);
+                });
+        }
+        
+        function selectCandidate(filename) {
+            selectedCandidates.add(filename);
+            updateCandidateUI(filename);
+            saveSelectedCandidates();
+        }
+        
+        function unselectCandidate(filename) {
+            selectedCandidates.delete(filename);
+            updateCandidateUI(filename);
+            saveSelectedCandidates();
+        }
+        
+        function updateCandidateUI(filename) {
+            const isSelected = selectedCandidates.has(filename);
+            const card = document.getElementById(`cv-card-${filename}`);
+            const statusBadge = document.getElementById(`status-${filename}`);
+            const selectBtn = document.getElementById(`select-btn-${filename}`);
+            const unselectBtn = document.getElementById(`unselect-btn-${filename}`);
+            const indicator = document.getElementById(`selected-indicator-${filename}`);
+            
+            if (card && statusBadge && selectBtn && unselectBtn) {
+                if (isSelected) {
+                    card.classList.add('selected');
+                    statusBadge.textContent = 'Selected';
+                    statusBadge.className = 'badge bg-success';
+                    selectBtn.style.display = 'none';
+                    unselectBtn.style.display = 'inline-block';
+                    if (indicator) indicator.style.display = 'block';
+                } else {
+                    card.classList.remove('selected');
+                    statusBadge.textContent = 'Not Selected';
+                    statusBadge.className = 'badge bg-secondary';
+                    selectBtn.style.display = 'inline-block';
+                    unselectBtn.style.display = 'none';
+                    if (indicator) indicator.style.display = 'none';
+                }
+            }
+        }
+        
+        function updateAllCandidateUI() {
+            const allCards = document.querySelectorAll('.cv-card');
+            allCards.forEach(card => {
+                const filename = card.dataset.filename;
+                if (filename) {
+                    updateCandidateUI(filename);
+                }
+            });
+        }
+        
+        function saveSelectedCandidates() {
+            fetch('/save_selected_candidates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selected_candidates: Array.from(selectedCandidates)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ Selected candidates saved');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error saving selected candidates:', error);
+            });
+        }
+        
+        async function loadAllFeedback() {
+            try {
+                console.log('📊 Loading feedback for all CVs...');
+                
+                // Get all CV cards
+                const cvCards = document.querySelectorAll('.cv-card');
+                
+                for (const card of cvCards) {
+                    const filename = card.dataset.filename;
+                    if (filename) {
+                        await loadCVFeedback(filename);
+                    }
+                }
+                
+                console.log('✅ Loaded feedback for all CVs');
+                
+            } catch (error) {
+                console.error('❌ Error loading all feedback:', error);
+            }
+        }
+        
+        async function loadCVFeedback(candidateFilename) {
+            try {
+                const response = await fetch(`/feedback/get_cv_feedback/${encodeURIComponent(candidateFilename)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayCVFeedback(candidateFilename, result.feedback_history, result.latest_feedback);
+                } else {
+                    console.error('❌ Error loading feedback for', candidateFilename, ':', result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading CV feedback:', error);
+            }
+        }
+        
+        function displayCVFeedback(candidateFilename, feedbackHistory, latestFeedback) {
+            const displayDiv = document.getElementById(`feedback-display-${candidateFilename}`);
+            const countBadge = document.getElementById(`feedback-count-${candidateFilename}`);
+            
+            if (!displayDiv) return;
+            
+            // Update badge count
+            if (countBadge) {
+                const totalFeedback = feedbackHistory.length;
+                countBadge.textContent = totalFeedback;
+                countBadge.className = `badge ${totalFeedback > 0 ? 'bg-success' : 'bg-secondary'}`;
+            }
+            
+            if (feedbackHistory.length === 0) {
+                displayDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-comment-slash mb-1"></i><br>
+                        <small>No feedback yet</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Display latest feedback
+            let feedbackHtml = '';
+            
+            if (latestFeedback) {
+                const decisionTexts = {
+                    'hired': '✅ Hired',
+                    'interviewed': '📞 Interview',
+                    'shortlisted': '📋 Shortlist',
+                    'rejected': '❌ Rejected',
+                    'not_suitable': '⚠️ Not suitable'
+                };
+                
+                feedbackHtml = `
+                    <div class="latest-feedback mb-2">
+                        <div class="feedback-item ${latestFeedback.decision}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>${decisionTexts[latestFeedback.decision] || latestFeedback.decision}</strong>
+                                    ${latestFeedback.rating ? `<span class="badge bg-secondary ms-2">${latestFeedback.rating}/5</span>` : ''}
+                                </div>
+                                <small class="text-muted">${formatDate(latestFeedback.timestamp)}</small>
+                            </div>
+                        </div>
+                        ${feedbackHistory.length > 1 ? `<small class="text-muted">... and ${feedbackHistory.length - 1} other feedback</small>` : ''}
+                    </div>
+                `;
+            }
+            
+            displayDiv.innerHTML = feedbackHtml;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+        
+        // Update submitFeedback function to reload feedback after sending
+        async function submitFeedback(candidateFilename) {
+            try {
+                console.log('📝 Starting feedback submission for:', candidateFilename);
+                
+                const decisionElement = document.getElementById(`decision-${candidateFilename}`);
+                const ratingElement = document.getElementById(`rating-${candidateFilename}`);
+                const notesElement = document.getElementById(`notes-${candidateFilename}`);
+                
+                if (!decisionElement) {
+                    alert('Feedback form not found!');
+                    return;
+                }
+                
+                const decision = decisionElement.value;
+                const rating = ratingElement ? ratingElement.value : '';
+                const notes = notesElement ? notesElement.value : '';
+                
+                if (!decision) {
+                    alert('Please select a decision!');
+                    return;
+                }
+                
+                const feedbackData = {
+                    candidate_filename: candidateFilename,
+                    human_decision: decision,
+                    human_rating: rating ? parseInt(rating) : null,
+                    feedback_notes: notes
+                };
+                
+                const response = await fetch('/feedback/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(feedbackData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Clear form
+                    decisionElement.value = '';
+                    if (ratingElement) ratingElement.value = '';
+                    if (notesElement) notesElement.value = '';
+                    
+                    // Reload feedback for this CV
+                    await loadCVFeedback(candidateFilename);
+                    
+                    // Show success message
+                    showFeedbackSuccess(candidateFilename, decision);
+                    
+                    console.log('✅ Feedback sent successfully!');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error sending feedback:', error);
+                alert('An error occurred while submitting feedback: ' + error.message);
+            }
+        }
+        
+        // Update showFeedbackSuccess to be simpler
+        function showFeedbackSuccess(candidateFilename, decision) {
+            const decisionTexts = {
+                'hired': '✅ Hired',
+                'interviewed': '📞 Interview', 
+                'shortlisted': '📋 Shortlist',
+                'rejected': '❌ Rejected',
+                'not_suitable': '⚠️ Not suitable'
+            };
+            
+            alert(`✅ Feedback submitted successfully!\n\nDecision: ${decisionTexts[decision]}`);
+        }
+        
+        // Test function
+        async function testFeedbackSystem() {
+            try {
+                console.log('🧪 Testing feedback system...');
+                
+                const response = await fetch('/feedback/test');
+                const result = await response.json();
+                
+                console.log('🧪 Test result:', result);
+                
+                if (result.success) {
+                    alert('✅ Feedback system is working!\n\n' + 
+                          'File: ' + result.feedback_file + '\n' +
+                          'Exists: ' + result.file_exists + '\n' +
+                          'Dir exists: ' + result.feedback_dir);
+                } else {
+                    alert('❌ Feedback system test failed: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error testing feedback system:', error);
+                alert('Error testing feedback system: ' + error.message);
+            }
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alert-container');
+            if (!alertContainer) return;
+            
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+            
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        function deleteCV(filename, cardIndex) {
+            console.log(`Delete CV called: filename=${filename}, cardIndex=${cardIndex}`);
+            
+            if (!confirm(`Are you sure you want to delete CV "${filename}"?`)) {
+                return;
+            }
+
+            const deleteBtn = event.target.closest('.delete-btn');
+            if (!deleteBtn) {
+                alert('Delete button not found!');
+                return;
+            }
+            
+            // Debug: Check if card exists
+            const cvCard = document.getElementById(`cv-card-${filename}`);
+            console.log(`Looking for card: cv-card-${filename}`, cvCard);
+            
+            if (!cvCard) {
+                console.error(`CV card not found: cv-card-${filename}`);
+                alert(`CV card not found: cv-card-${filename}`);
+                return;
+            }
+            
+            const originalContent = deleteBtn.innerHTML;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            deleteBtn.disabled = true;
+
+            fetch(`/delete_cv/${encodeURIComponent(filename)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // ✅ Fix: Find card by filename instead of cardIndex
+                    const cvCard = document.getElementById(`cv-card-${filename}`);
+                    if (cvCard) {
+                        cvCard.style.transition = 'all 0.3s ease';
+                        cvCard.style.opacity = '0';
+                        cvCard.style.transform = 'scale(0.8)';
+                        setTimeout(() => {
+                            cvCard.remove();
+                            updateCardNumbers();
+                        }, 300);
+                    } else {
+                        console.error(`CV card not found: cv-card-${filename}`);
+                        // Fallback: reload page
+                        location.reload();
+                    }
+                    
+                    showAlert(data.message, 'success');
+                    updateStats();
+                } else {
+                    showAlert(data.message, 'danger');
+                    deleteBtn.innerHTML = originalContent;
+                    deleteBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred while deleting CV', 'danger');
+                deleteBtn.innerHTML = originalContent;
+                deleteBtn.disabled = false;
+            });
+        }
+
+        function updateCardNumbers() {
+            const cards = document.querySelectorAll('.cv-card');
+            cards.forEach((card, index) => {
+                const title = card.querySelector('h5');
+                if (title) {
+                    const currentText = title.textContent;
+                    const newText = currentText.replace(/^#\d+/, `#${index + 1}`);
+                    title.textContent = newText;
+                }
+            });
+        }
+
+        function updateStats() {
+            const totalCards = document.querySelectorAll('.cv-card').length;
+            if (totalCards === 0) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+
+        function downloadUploadList(format) {
+            try {
+                let url = '';
+                switch(format) {
+                    case 'csv':
+                        url = '/download_upload_list_csv';
+                        break;
+                    case 'excel':
+                        url = '/download_upload_list_excel';
+                        break;
+                    case 'pdf':
+                        url = '/download_upload_list_pdf';
+                        break;
+                    default:
+                        throw new Error('Invalid format');
+                }
+                
+                // Create hidden link to download
+                const link = document.createElement('a');
+                link.href = url;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Show message
+                showMessage(`Downloading file ${format.toUpperCase()}...`, 'info');
+                
+            } catch (error) {
+                console.error('Error while downloading:', error);
+                showMessage('An error occurred while downloading the file!', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const alertClass = type === 'error' ? 'alert-danger' : 'alert-info';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `alert ${alertClass} alert-dismissible fade show`;
+            messageDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Add to top of container
+            const container = document.querySelector('.upload-container');
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 3000);
+        }
+
+        // Function to show detailed TF-IDF explanation
+        function showTFIDFExplanation() {
+            const modal = `
+                <div class="modal fade" id="tfidfModal" tabindex="-1" aria-labelledby="tfidfModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="tfidfModalLabel">
+                                    <i class="fas fa-calculator me-2"></i>Understanding TF-IDF Scoring
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-search text-primary me-2"></i>What is TF-IDF?</h6>
+                                        <p>TF-IDF (Term Frequency-Inverse Document Frequency) is a numerical statistic that reflects how important a word is to a document in a collection of documents.</p>
+                                        
+                                        <h6><i class="fas fa-cogs text-success me-2"></i>How it works:</h6>
+                                        <ul class="small">
+                                            <li><strong>TF (Term Frequency):</strong> Counts how often a word appears in a document</li>
+                                            <li><strong>IDF (Inverse Document Frequency):</strong> Measures how rare a word is across all documents</li>
+                                            <li><strong>TF-IDF Score:</strong> TF × IDF = Word importance</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-lightbulb text-warning me-2"></i>Example:</h6>
+                                        <div class="bg-light p-3 rounded">
+                                            <p class="small mb-2"><strong>Job Description:</strong> "Looking for Python developer with machine learning experience"</p>
+                                            <p class="small mb-2"><strong>Resume:</strong> "5 years Python experience, worked on ML projects using TensorFlow"</p>
+                                            <hr>
+                                            <p class="small mb-0"><strong>TF-IDF Analysis:</strong></p>
+                                            <ul class="small mb-0">
+                                                <li>"Python" appears in both → High TF-IDF score</li>
+                                                <li>"Machine learning" vs "ML" → Semantic similarity</li>
+                                                <li>"TensorFlow" is specific skill → High importance</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Why TF-IDF matters:</h6>
+                                    <p class="mb-0 small">TF-IDF helps identify candidates whose resumes contain the most relevant and important keywords from your job description, ensuring better matches for your specific requirements.</p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('tfidfModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modal);
+            
+            // Show modal
+            const tfidfModal = new bootstrap.Modal(document.getElementById('tfidfModal'));
+            tfidfModal.show();
+        }
+    </script>
+</body>
+</html>
+

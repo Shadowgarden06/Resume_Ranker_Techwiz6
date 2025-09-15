@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Search - AI Resume Ranker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .search-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .search-card { 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            border: 1px solid #e9ecef;
+        }
+        .filter-section {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+        }
+        .filter-title {
+            color: #007bff;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .range-slider {
+            margin: 10px 0;
+        }
+        .skill-tag {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .skill-tag:hover {
+            background: #007bff;
+            color: white;
+        }
+        .skill-tag.selected {
+            background: #007bff;
+            color: white;
+        }
+        .advanced-toggle {
+            cursor: pointer;
+            color: #007bff;
+        }
+        .advanced-toggle:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index_bp.index') }}">
+                <i class="fas fa-file-alt me-2"></i>Resume Ranker
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index_bp.index') }}"><i class="fas fa-home me-1"></i>Home</a>
+                <a class="nav-link" href="{{ url_for('uploads_bp.upload_list') }}"><i class="fas fa-upload me-1"></i>Uploaded CVs</a>
+                <a class="nav-link active" href="{{ url_for('search_bp.search_candidates') }}"><i class="fas fa-search me-1"></i>Search</a>
+                <a class="nav-link" href="{{ url_for('qa_bp.qa_home') }}"><i class="fas fa-question-circle me-1"></i>Document QA</a>
+                <a class="nav-link" href="{{ url_for('login_bp.logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="search-container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4"><i class="fas fa-search text-primary me-2"></i>Advanced Candidate Search</h1>
+                <p class="text-muted mb-4">Search candidates with advanced filters by keywords, ranking score, experience and skills</p>
+            </div>
+        </div>
+
+        <!-- JD Info Display -->
+        <div id="jd-info-section" class="mb-4" style="display: none;">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-briefcase me-2"></i>Current Job Description:</h6>
+                <div id="jd-info-content"></div>
+            </div>
+        </div>
+
+        <div class="search-card">
+            <h4 class="mb-3"><i class="fas fa-filter me-2"></i>Search & Filters</h4>
+            <form method="POST" id="searchForm">
+                <!-- Basic Search -->
+                <div class="filter-section">
+                    <div class="filter-title">
+                        <i class="fas fa-search me-2"></i>Basic Search
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="search_query" class="form-label">Search Keywords:</label>
+                                <input type="text" class="form-control" id="search_query" name="search_query" 
+                                       placeholder="Enter search keywords (name, email, skills, company...)" 
+                                       value="{{ request.form.get('search_query', '') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="search_type" class="form-label">Search In:</label>
+                                <select class="form-select" id="search_type" name="search_type">
+                                    <option value="all" {{ 'selected' if request.form.get('search_type') == 'all' else '' }}>All Fields</option>
+                                    <option value="name" {{ 'selected' if request.form.get('search_type') == 'name' else '' }}>Name Only</option>
+                                    <option value="email" {{ 'selected' if request.form.get('search_type') == 'email' else '' }}>Email Only</option>
+                                    <option value="skills" {{ 'selected' if request.form.get('search_type') == 'skills' else '' }}>Skills Only</option>
+                                    <option value="experience" {{ 'selected' if request.form.get('search_type') == 'experience' else '' }}>Experience Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filters Toggle -->
+                <div class="text-center mb-3">
+                    <span class="advanced-toggle" onclick="toggleAdvancedFilters()">
+                        <i class="fas fa-cog me-2"></i>
+                        <span id="advancedToggleText">Show Advanced Filters</span>
+                        <i class="fas fa-chevron-down ms-2" id="advancedToggleIcon"></i>
+                    </span>
+                </div>
+
+                <!-- Advanced Filters -->
+                <div id="advancedFilters" style="display: none;">
+                    <!-- Score Range Filter -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="fas fa-chart-line me-2"></i>Score Range
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="min_score" class="form-label">Minimum Score:</label>
+                                    <input type="range" class="form-range" id="min_score" name="min_score" 
+                                           min="0" max="100" value="{{ request.form.get('min_score', '0') }}" 
+                                           oninput="updateScoreDisplay()">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0%</small>
+                                        <span id="minScoreValue">{{ request.form.get('min_score', '0') }}%</span>
+                                        <small>100%</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_score" class="form-label">Maximum Score:</label>
+                                    <input type="range" class="form-range" id="max_score" name="max_score" 
+                                           min="0" max="100" value="{{ request.form.get('max_score', '100') }}" 
+                                           oninput="updateScoreDisplay()">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0%</small>
+                                        <span id="maxScoreValue">{{ request.form.get('max_score', '100') }}%</span>
+                                        <small>100%</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Experience Range Filter -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="fas fa-briefcase me-2"></i>Years of Experience
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="min_experience" class="form-label">Minimum Experience (≥):</label>
+                                    <input type="range" class="form-range" id="min_experience" name="min_experience" 
+                                           min="0" max="20" value="{{ request.form.get('min_experience', '0') }}" 
+                                           oninput="updateExperienceDisplay()">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0 years</small>
+                                        <span id="minExpValue">{{ request.form.get('min_experience', '0') }} years</span>
+                                        <small>20+ years</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_experience" class="form-label">Maximum Experience (≤):</label>
+                                    <input type="range" class="form-range" id="max_experience" name="max_experience" 
+                                           min="0" max="20" value="{{ request.form.get('max_experience', '20') }}" 
+                                           oninput="updateExperienceDisplay()">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0 years</small>
+                                        <span id="maxExpValue">{{ request.form.get('max_experience', '20') }} years</span>
+                                        <small>20+ years</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Show CVs with experience from <strong>Min</strong> to <strong>Max</strong> (inclusive)
+                        </div>
+                    </div>
+
+                    <!-- Skills Filter -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="fas fa-tools me-2"></i>Required Skills
+                        </div>
+                        <div class="mb-3">
+                            <label for="required_skills" class="form-label">Select Required Skills:</label>
+                            <div id="skillsContainer">
+                                <!-- Skills will be loaded dynamically -->
+                            </div>
+                            <input type="hidden" id="selectedSkills" name="required_skills" 
+                                   value="{{ request.form.get('required_skills', '') }}">
+                        </div>
+    </div>
+    
+                    <!-- Education Level Filter -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="fas fa-graduation-cap me-2"></i>Education Level
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Education Level:</label>
+                                    <select class="form-select" name="education_level">
+                                        <option value="">Any Level</option>
+                                        <option value="high_school" {{ 'selected' if request.form.get('education_level') == 'high_school' else '' }}>High School</option>
+                                        <option value="bachelor" {{ 'selected' if request.form.get('education_level') == 'bachelor' else '' }}>Bachelor's Degree</option>
+                                        <option value="master" {{ 'selected' if request.form.get('education_level') == 'master' else '' }}>Master's Degree</option>
+                                        <option value="phd" {{ 'selected' if request.form.get('education_level') == 'phd' else '' }}>PhD</option>
+                                        <option value="certification" {{ 'selected' if request.form.get('education_level') == 'certification' else '' }}>Professional Certification</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Sort By:</label>
+                                    <select class="form-select" name="sort_by">
+                                        <option value="score" {{ 'selected' if request.form.get('sort_by') == 'score' else '' }}>Combined Score</option>
+                                        <option value="experience" {{ 'selected' if request.form.get('sort_by') == 'experience' else '' }}>Years of Experience</option>
+                                        <option value="name" {{ 'selected' if request.form.get('sort_by') == 'name' else '' }}>Name (A-Z)</option>
+                                        <option value="skills" {{ 'selected' if request.form.get('sort_by') == 'skills' else '' }}>Number of Skills</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Buttons -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-search me-2"></i>Search Candidates
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                        <i class="fas fa-eraser me-2"></i>Clear All Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Search Tips -->
+        <div class="search-card">
+            <h5 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Search Tips</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Use keywords like "Python", "Manager", "5 years"</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Search by company names or job titles</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Combine multiple skills with commas</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Use score range to find top candidates</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Filter by experience for senior positions</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Select specific skills for technical roles</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle advanced filters
+        function toggleAdvancedFilters() {
+            const advancedFilters = document.getElementById('advancedFilters');
+            const toggleText = document.getElementById('advancedToggleText');
+            const toggleIcon = document.getElementById('advancedToggleIcon');
+            
+            if (advancedFilters.style.display === 'none') {
+                advancedFilters.style.display = 'block';
+                toggleText.textContent = 'Hide Advanced Filters';
+                toggleIcon.className = 'fas fa-chevron-up ms-2';
+            } else {
+                advancedFilters.style.display = 'none';
+                toggleText.textContent = 'Show Advanced Filters';
+                toggleIcon.className = 'fas fa-chevron-down ms-2';
+            }
+        }
+
+        // Update score display
+        function updateScoreDisplay() {
+            document.getElementById('minScoreValue').textContent = document.getElementById('min_score').value + '%';
+            document.getElementById('maxScoreValue').textContent = document.getElementById('max_score').value + '%';
+        }
+
+        // Update experience display
+        function updateExperienceDisplay() {
+            document.getElementById('minExpValue').textContent = document.getElementById('min_experience').value + ' years';
+            document.getElementById('maxExpValue').textContent = document.getElementById('max_experience').value + ' years';
+        }
+
+        // Load available skills
+        function loadSkills() {
+            // Common skills list - in real implementation, this would come from the backend
+            const commonSkills = [
+                'Python', 'Java', 'JavaScript', 'React', 'Node.js', 'SQL', 'MongoDB',
+                'AWS', 'Docker', 'Kubernetes', 'Git', 'Machine Learning', 'Data Analysis',
+                'Project Management', 'Agile', 'Scrum', 'Leadership', 'Communication',
+                'Problem Solving', 'Team Management', 'Customer Service', 'Sales',
+                'Marketing', 'Finance', 'Accounting', 'HR', 'Design', 'Photoshop',
+                'Figma', 'UI/UX', 'Mobile Development', 'iOS', 'Android', 'DevOps'
+            ];
+
+            const skillsContainer = document.getElementById('skillsContainer');
+            const selectedSkills = document.getElementById('selectedSkills').value.split(',').filter(s => s.trim());
+            
+            commonSkills.forEach(skill => {
+                const skillTag = document.createElement('span');
+                skillTag.className = 'skill-tag';
+                skillTag.textContent = skill;
+                
+                if (selectedSkills.includes(skill)) {
+                    skillTag.classList.add('selected');
+                }
+                
+                skillTag.onclick = function() {
+                    this.classList.toggle('selected');
+                    updateSelectedSkills();
+                };
+                
+                skillsContainer.appendChild(skillTag);
+            });
+        }
+
+        // Update selected skills
+        function updateSelectedSkills() {
+            const selectedTags = document.querySelectorAll('.skill-tag.selected');
+            const selectedSkills = Array.from(selectedTags).map(tag => tag.textContent);
+            document.getElementById('selectedSkills').value = selectedSkills.join(',');
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('searchForm').reset();
+            document.getElementById('minScoreValue').textContent = '0%';
+            document.getElementById('maxScoreValue').textContent = '100%';
+            document.getElementById('minExpValue').textContent = '0 years';
+            document.getElementById('maxExpValue').textContent = '20 years';
+            
+            // Clear selected skills
+            document.querySelectorAll('.skill-tag.selected').forEach(tag => {
+                tag.classList.remove('selected');
+            });
+            document.getElementById('selectedSkills').value = '';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSkills();
+            updateScoreDisplay();
+            updateExperienceDisplay();
+        });
+    </script>
+</body>
+</html>
+
